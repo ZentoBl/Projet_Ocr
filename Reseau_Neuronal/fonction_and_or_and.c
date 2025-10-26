@@ -6,6 +6,7 @@ double sigmoid(double x)
 {
     return 1.0 / (1.0 + exp(-x));
 }
+// compris entre 1 et 0 indéfiniment
 
 // Structure du réseau neuronal pour !A.!B + A.B
 typedef struct 
