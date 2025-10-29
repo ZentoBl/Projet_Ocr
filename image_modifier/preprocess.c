@@ -144,8 +144,8 @@ void denoise_median(SDL_Surface *img, int dist, char priority)
     denoise_percent(img, dist, UCHAR_MAX / 2, priority);
 }
 // dist = 1 for 3*3, 2 for 5*5, n for (2 * n + 1) ** 2
-// percent near 0   for opening : erosion then dilation of light pixel -> without light pixels alone
-// percent near 255 for closing : dilation then erosion of light pixel -> without dark  pixels alone
+// percent near 0         for opening : erosion then dilation of light pixel -> without light pixels alone
+// percent near UCHAR_MAX for closing : dilation then erosion of light pixel -> without dark  pixels alone
 void denoise_morphology(SDL_Surface *img, int dist, unsigned char percent)
 {
     denoise_percent(img, dist, percent, percent - UCHAR_MAX / 2);
