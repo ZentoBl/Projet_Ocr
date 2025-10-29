@@ -273,10 +273,11 @@ void denoise_by_count(SDL_Surface *img, int min_size)
         errx(EXIT_FAILURE, "SDL_Surface NULL\n");
     if (SDL_MUSTLOCK(img))
         SDL_LockSurface(img);
+    const int dx[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
+    const int dy[8] = {-1, 0, 1, -1, 1, -1, 0, 1};
     Uint8 *pixels = (Uint8 *)img->pixels;
     Uint8 *visited = calloc(img->w * img->h, sizeof(Uint8));
-    int stack_max = img->w * img->h / 10;
-    int *stack = malloc(sizeof(int) * stack_max * 2);
+    int *stack = malloc(sizeof(int) * img->w * img->h * 2);
     for (int y = 0; y < img->h; y++)
     {
         for (int x = 0; x < img->w; x++)
@@ -304,10 +305,13 @@ void denoise_by_count(SDL_Surface *img, int min_size)
                     continue;
                 visited[cy * img->w + cx] = 1;
                 count++;
-                stack[stack_size++] = cx + 1; stack[stack_size++] = cy;
-                stack[stack_size++] = cx - 1; stack[stack_size++] = cy;
-                stack[stack_size++] = cx;     stack[stack_size++] = cy + 1;
-                stack[stack_size++] = cx;     stack[stack_size++] = cy - 1;
+                for (unsigned char k = 0; k < 8; ++k)
+                {
+                    int nx = cx + dx[k];
+                    int ny = cy + dy[k];
+                    stack[stack_size++] = nx;
+                    stack[stack_size++] = ny;
+                }
             }
             if (count < min_size) // too small -> clear pixels
             {
@@ -330,10 +334,13 @@ void denoise_by_count(SDL_Surface *img, int min_size)
                         cp[2] = 255;
                     }
                     visited[cy * img->w + cx] = 2; // clear
-                    stack[stack_size++] = cx + 1; stack[stack_size++] = cy;
-                    stack[stack_size++] = cx - 1; stack[stack_size++] = cy;
-                    stack[stack_size++] = cx;     stack[stack_size++] = cy + 1;
-                    stack[stack_size++] = cx;     stack[stack_size++] = cy - 1;
+                    for (unsigned char k = 0; k < 8; ++k)
+                    {
+                        int nx = cx + dx[k];
+                        int ny = cy + dy[k];
+                        stack[stack_size++] = nx;
+                        stack[stack_size++] = ny;
+                    }
                 }
             }
         }
