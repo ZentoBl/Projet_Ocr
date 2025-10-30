@@ -37,8 +37,10 @@ void init_network_random(NeuralNetwork *nn)
     srand(time(NULL));
     
     // Initialisation aléatoire entre -1 et 1
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 2; j++) {
+    for (int i = 0; i < 2; i++) 
+    {
+        for (int j = 0; j < 2; j++) 
+        {
             nn->hidden_weights[i][j] = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
         }
         nn->hidden_bias[i] = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
@@ -51,7 +53,7 @@ void init_network_random(NeuralNetwork *nn)
 
 
 
-// Propagation avant (forward pass)
+// Propagation avant 
 void forward(NeuralNetwork *nn, double a, double b, double *hidden, 
     double *hidden_sum, double *output, double *output_sum)
 {
@@ -86,10 +88,10 @@ double compute_loss(NeuralNetwork *nn, double a, double b,
     double hidden[2], hidden_sum[2], output, output_sum;
     forward(nn, a, b, hidden, hidden_sum, &output, &output_sum);
     double error = output - expected;
-    return error * error;  // Erreur quadratique (MSE)
+    return error * error;  // Erreur
 }
 
-// BACKPROPAGATION - Le cœur de l'apprentissage !
+// BACKPROPAGATION : Le coeur de l'apprentissage 
 void backpropagate(NeuralNetwork *nn, double a, double b, 
     double expected)
 {
@@ -106,22 +108,26 @@ void backpropagate(NeuralNetwork *nn, double a, double b,
     
     // 4. Calcul des gradients pour les neurones cachés
     double hidden_delta[2];
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++) 
+    {
         double error_contribution = output_delta * nn->output_weights[i];
         hidden_delta[i] = error_contribution * 
             sigmoid_derivative(hidden_sum[i]);
     }
     
     // 5. Mise à jour des poids de la couche de sortie
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++) 
+    {
         nn->output_weights[i] -= nn->learning_rate * output_delta * hidden[i];
     }
     nn->output_bias -= nn->learning_rate * output_delta;
     
     // 6. Mise à jour des poids de la couche cachée
     double inputs[2] = {a, b};
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 2; j++) {
+    for (int i = 0; i < 2; i++) 
+    {
+        for (int j = 0; j < 2; j++) 
+        {
             nn->hidden_weights[i][j] -= nn->learning_rate * 
                 hidden_delta[i] * inputs[j];
         }
@@ -137,18 +143,21 @@ void train(NeuralNetwork *nn, int simulations, int verbose)
     
     printf("\n=== Début de l'entraînement ===\n");
     
-    for (int simulation = 0; simulation < simulations; simulation++) {
+    for (int simulation = 0; simulation < simulations; simulation++) 
+    {
         double total_loss = 0.0;
         
         // Entraîner sur tous les exemples
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) 
+        {
             backpropagate(nn, inputs[i][0], inputs[i][1], expected[i]);
             total_loss += compute_loss(nn, inputs[i][0], inputs[i][1], 
                 expected[i]);
         }
         
         // Afficher la progression toutes les 1000 simulations
-        if (verbose && (simulation % 1000 == 0 || simulation == simulations - 1)) {
+        if (verbose && (simulation % 1000 == 0 || simulation == simulations - 1)) 
+        {
             printf("simulation %d: Loss = %.6f\n", simulation, total_loss / 4.0);
         }
     }
@@ -252,7 +261,7 @@ int main()
     printf("2. Réseau qui apprend (poids aléatoires + backpropagation)\n");
     
    
-    // Mode apprentissage
+    
     init_network_random(&nn);
     printf("\n=== Mode: Apprentissage ===\n");
     printf("\nPoids AVANT l'entraînement (aléatoires):\n");
