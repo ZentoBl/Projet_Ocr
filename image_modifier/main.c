@@ -29,7 +29,6 @@ int main(int argc, char **argv)
     save_letters(img, name_file);
 
     SDL_FreeSurface(img);
-    IMG_Quit();
     SDL_Quit();
     return EXIT_SUCCESS;
 }

@@ -1,9 +1,11 @@
-CFLAGS := -Wall -Wextra -fsanitize=address -g -lSDL2 -lSDL2_image -lm
+CFLAGS := -Wall -Wextra -g
+#SANITYFLAGS := -fsanitize=address -fsanitize-recover=address
+LDFLAGS := -lm -lSDL2 -lSDL2_image
 TARGET := image_modifier
-SRC := main.c base_img.c preprocess.c get_letters.c 
+SRC := main.c base_img.c preprocess.c get_letters.c
 
 $(TARGET): $(SRC)
-	gcc $(CFLAGS) -o $@ $(SRC)
+	gcc $(SRC) -o $@ $(CFLAGS) $(SANITYFLAGS) $(LDFLAGS)
 
 all: $(TARGET)
 
