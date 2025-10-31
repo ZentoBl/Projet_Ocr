@@ -30,11 +30,8 @@ void gray_scale(SDL_Surface *img)
         SDL_UnlockSurface(img);
 }
 
-int gt(const void* a, const void* b) {
+int cmp_Uint8(const void* a, const void* b) {
     return *(const Uint8*)a - *(const Uint8*)b;
-}
-int lt(const void* a, const void* b) {
-    return gt(b, a);
 }
 // dist = 1 for 3*3, 2 for 5*5, n for (2 * n + 1) ** 2
 void denoise_average(SDL_Surface *img, int dist)
@@ -107,9 +104,9 @@ void denoise_percent(SDL_Surface *img, int dist, unsigned char percent, char pri
                     l_g[k] = copy[dy * img->pitch + dx * img->format->BytesPerPixel + 1];
                     l_b[k++] = copy[dy * img->pitch + dx * img->format->BytesPerPixel + 2];
                 }
-            qsort(l_r, k, sizeof(Uint8), gt);
-            qsort(l_g, k, sizeof(Uint8), gt);
-            qsort(l_b, k, sizeof(Uint8), gt);
+            qsort(l_r, k, sizeof(Uint8), cmp_Uint8);
+            qsort(l_g, k, sizeof(Uint8), cmp_Uint8);
+            qsort(l_b, k, sizeof(Uint8), cmp_Uint8);
             size_t i = ((k - 1) * percent) / UCHAR_MAX;
             if (((k - 1) * percent) % UCHAR_MAX)
             {
@@ -152,61 +149,21 @@ void denoise_morphology(SDL_Surface *img, int dist, unsigned char percent)
     denoise_percent(img, dist, UCHAR_MAX - percent, UCHAR_MAX / 2 - percent);
 }
 
-void denoise_min_or_max(SDL_Surface *img, int dist, __compar_fn_t f)
-{
-    // dist = 1 for 3*3, 2 for 5*5, n for (2 * n + 1) ** 2
-    if (!img)
-        errx(EXIT_FAILURE, "SDL_Surface NULL\n");
-    if (SDL_MUSTLOCK(img))
-        SDL_LockSurface(img);
-    Uint8 *pixels = img->pixels;
-    Uint8 *copy = malloc(img->h * img->pitch);
-    memcpy(copy, pixels, img->h * img->pitch);
-    for (int y = 0; y < img->h; y++)
-        for (int x = 0; x < img->w; x++)
-        {            
-            int x1 = x-dist < 0 ? 0 : x-dist;
-            int x2 = img->w-1 < x+dist ? img->w-1 : x+dist;
-            int y1 = y-dist < 0 ? 0 : y-dist;
-            int y2 = img->h-1 < y+dist ? img->h-1 : y+dist;
-            Uint8 r = pixels[y * img->pitch + x * img->format->BytesPerPixel];
-            Uint8 g = pixels[y * img->pitch + x * img->format->BytesPerPixel + 1];
-            Uint8 b = pixels[y * img->pitch + x * img->format->BytesPerPixel + 2];
-            for (int dx = x1; dx <= x2; dx++)
-                for (int dy = y1; dy <= y2; dy++)
-                {
-                    if (f(&r, &copy[dy * img->pitch + dx * img->format->BytesPerPixel]) > 0)
-                        r = copy[dy * img->pitch + dx * img->format->BytesPerPixel];
-                    if (f(&g, &copy[dy * img->pitch + dx * img->format->BytesPerPixel + 1]) > 0)
-                        g = copy[dy * img->pitch + dx * img->format->BytesPerPixel + 1];
-                    if (f(&b, &copy[dy * img->pitch + dx * img->format->BytesPerPixel + 2]) > 0)
-                        b = copy[dy * img->pitch + dx * img->format->BytesPerPixel + 2];
-                }
-            pixels[y * img->pitch + x * img->format->BytesPerPixel] = r;
-            pixels[y * img->pitch + x * img->format->BytesPerPixel + 1] = g;
-            pixels[y * img->pitch + x * img->format->BytesPerPixel + 2] = b;
-        }
-    if (SDL_MUSTLOCK(img))
-        SDL_UnlockSurface(img);
-    free(copy);
-}
-
 // without light pixels alone
 // dist = 1 for 3*3, 2 for 5*5, n for (2 * n + 1) ** 2
 void denoise_opening(SDL_Surface *img, int dist)
 {
-    denoise_min_or_max(img, dist, gt); // erosion : pixels near dark  pixel become dark
-    denoise_min_or_max(img, dist, lt); // dilation: pixels near light pixel become light
+    denoise_morphology(img, dist, 0);
 }
 // without dark pixels alone
 // dist = 1 for 3*3, 2 for 5*5, n for (2 * n + 1) ** 2
 void denoise_closing(SDL_Surface *img, int dist)
 {
-    denoise_min_or_max(img, dist, lt); // dilation: pixels near light pixel become light
-    denoise_min_or_max(img, dist, gt); // erosion : pixels near dark  pixel become dark
+    denoise_morphology(img, dist, 1);
 }
 
-Uint8 get_threshold(SDL_Surface *img)
+//Otsu's method
+Uint8 get_threshold_Otsu(SDL_Surface *img)
 {
     unsigned long hist[256] = {0};
     Uint8 *pixels = img->pixels;
@@ -244,13 +201,14 @@ Uint8 get_threshold(SDL_Surface *img)
     return threshold;
 }
 
+//Use the Otsu's method
 void to_binary(SDL_Surface *img)
 {
     if (!img)
         errx(EXIT_FAILURE, "SDL_Surface NULL\n");
     if (SDL_MUSTLOCK(img))
         SDL_LockSurface(img);
-    Uint8 threshold = get_threshold(img);
+    Uint8 threshold = get_threshold_Otsu(img);
     Uint8 *pixels = img->pixels;
     size_t BytesPerPixel = img->format->BytesPerPixel;
     size_t count = img->w * img->h * BytesPerPixel;
