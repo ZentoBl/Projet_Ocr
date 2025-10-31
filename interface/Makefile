@@ -1,15 +1,17 @@
 CFLAGS = `pkg-config --cflags gtk+-3.0` -Wall -g
-LIBS = `pkg-config --libs gtk+-3.0` 
+LIBS = `pkg-config --libs gtk+-3.0` -lm
 SRC = interface.c
-OBJ = $(SRC:.c=.o)
-CC = gcc
-all: app
+TARGET := interface
 
-app: $(OBJ)
-	$(CC) -o $@ $(OBJ) $(LIBS)
 
-%.o: %.c
-	$(CC) -c $< $(CFLAGS)
+
+$(TARGET): $(SRC)
+	gcc $(SRC) -o $@ $(CFLAGS) $(LIBS)
+
+
+
+all: $(TARGET)
+
 
 clean:
-	rm -f *.o app
+	rm -f $(TARGET)

@@ -5,7 +5,7 @@ TARGET := image_modifier
 SRC := main.c base_img.c preprocess.c get_letters.c
 
 $(TARGET): $(SRC)
-	gcc $(SRC) -o $@ $(CFLAGS) $(SANITYFLAGS) $(LDFLAGS)
+	gcc $(SRC) -o $@ $(CFLAGS) $(LDFLAGS)
 
 all: $(TARGET)
 

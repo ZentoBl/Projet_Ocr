@@ -196,7 +196,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="hexpand">True</property>
-                        <property name="pixbuf">images_interface\GENESIS_logo.png</property>
+                        <property name="pixbuf">images_interface/GENESIS_logo.png</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -223,7 +223,7 @@ par GENESIS</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="hexpand">True</property>
-                        <property name="pixbuf">images_interface\NOVA_logo.png</property>
+                        <property name="pixbuf">images_interface/NOVA_logo.png</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>

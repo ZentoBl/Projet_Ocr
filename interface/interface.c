@@ -216,7 +216,7 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
     }
     
     // Nom du fichier de sortie (dans le répertoire courant)
-    const char *output_filename = "output.bmp";
+    const char *output_filename = "../image_modifier/tests_images/output.bmp";
     
     // Récupérer le pixbuf actuel (avec rotation appliquée)
     GdkPixbuf *current_pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(app->image));
@@ -229,7 +229,7 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
             g_print("Image convertie et sauvegardée: %s\n", output_filename);
             
             // Appeler l'exécutable externe avec output.bmp
-            gchar *command = g_strdup_printf("./main %s", output_filename);
+            gchar *command = g_strdup_printf("cd ../image_modifier/ && ./image_modifier output.bmp");
             g_print("Exécution de: %s\n", command);
             
             int result = system(command);
@@ -239,7 +239,7 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
                 g_print("Traitement externe terminé avec succès\n");
                 
                 // Charger l'image de sortie (temp_output.bmp)
-                const char *processed_filename = "temp_output.bmp";
+                const char *processed_filename = "../image_modifier/black_and_white/output.bmp_black_white.bmp";
                 GdkPixbuf *processed_pixbuf = gdk_pixbuf_new_from_file(processed_filename, &error);
                 
                 if (processed_pixbuf) {
