@@ -153,7 +153,7 @@ void save_with_marks(SDL_Surface *img, Box *boxes, size_t *indices, size_t nx,  
     if (SDL_SetRenderDrawColor(renderer, 136, 8, 8, 255))
         errx(EXIT_FAILURE, "SDL_RenderDrawRect failed");
 
-    int n_color = 3*(nx+ny);
+    size_t n_color = 3*(nx+ny);
     Uint8 *color = malloc(n_color);
     for (size_t i = 0; i < n_color; i++)
     {
@@ -478,13 +478,13 @@ size_t group_letters_into_grid(SDL_Surface *img, Box *boxes, size_t n, GridLette
         if (out_col_count) *out_col_count = 0;
         return 0;
     }
-    size_t nb_indices_x;
-    size_t nb_row;
-    size_t col_count_x;
+    size_t nb_indices_x = 0;
+    size_t nb_row = 0;
+    size_t col_count_x = 0;
     size_t *indices_x = malloc(n * sizeof(size_t));
-    size_t nb_indices_y;
-    size_t nb_col;
-    size_t row_count_y;
+    size_t nb_indices_y = 0;
+    size_t nb_col = 0;
+    size_t row_count_y = 0;
     size_t *indices_y = malloc(n * sizeof(size_t));
     {
         qsort(boxes, n, sizeof(*boxes), cmp_box_tolerance_x);
@@ -548,7 +548,7 @@ size_t group_letters_into_grid(SDL_Surface *img, Box *boxes, size_t n, GridLette
         size_t *hist_y = calloc(max_y + 1, sizeof(size_t));
         for (size_t i = 0; i < n; i++)
             hist_y[boxes[i].cy]++;
-        size_t nb_indices_y = get_count(hist_y, max_y, TOLERANCE_Y, &nb_col, &row_count_y, indices_y);
+        nb_indices_y = get_count(hist_y, max_y, TOLERANCE_Y, &nb_col, &row_count_y, indices_y);
         free(hist_y);
         size_t *gap_x_i = malloc(nb_col * sizeof(size_t));
         size_t *all_gap_x = malloc(row_count_y * sizeof(size_t));
@@ -589,23 +589,25 @@ size_t group_letters_into_grid(SDL_Surface *img, Box *boxes, size_t n, GridLette
         save_with_marks(img, boxes, indices_y, nb_col, row_count_y, "test_detection_y");
 
         printf("grid y = %lix%li\n", row_count_y, nb_col);
-
-        return nb_indices_y;
     }
-
+return 0;
+/*
     if (nb_indices_x > nb_indices_y)
     {
+        qsort(boxes, n, sizeof(*boxes), cmp_box_tolerance_x);
         if (out_row_count) *out_row_count = nb_row;
         if (out_col_count) *out_col_count = col_count_x;
+
+
+        printf("%li %li\n", *out_row_count, *out_col_count);
         for (size_t i = 0; i < nb_indices_x; i++)
         {
-            if (i > max_letters)
+            if (i >= max_letters)
                 errx(EXIT_FAILURE, "max_letters = %li", max_letters);
             out_letters[i] = (GridLetter){boxes[indices_x[i]], i / col_count_x, i % col_count_x};
         }
         free(indices_x);
         free(indices_y);
-
         return nb_indices_x;
     }
     else
@@ -613,16 +615,18 @@ size_t group_letters_into_grid(SDL_Surface *img, Box *boxes, size_t n, GridLette
         if (out_row_count) *out_row_count = row_count_y;
         if (out_col_count) *out_col_count = nb_col;
 
+        printf("%li %li\n", *out_row_count,  *out_col_count);
         for (size_t i = 0; i < nb_indices_y; i++)
         {
-            if (i > max_letters)
+            if (i >= max_letters)
                 errx(EXIT_FAILURE, "max_letters = %li", max_letters);
-            out_letters[i] = (GridLetter){boxes[indices_y[i]], i / nb_col, i % nb_col};
+            out_letters[i] = (GridLetter){boxes[indices_y[i]], i % nb_col, i / nb_col};
         }
         free(indices_x);
         free(indices_y);
         return nb_indices_y;
     }
+    */
 }
 
 size_t group_letters_into_words(Box *boxes, size_t n, WordLetter *out_letters, size_t max_letters, size_t *out_words_count)
