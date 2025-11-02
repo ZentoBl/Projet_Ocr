@@ -212,7 +212,7 @@ void save_with_marks(SDL_Surface *img, Box *boxes, size_t *indices, size_t nx,  
 }
 
 
-// safe push into boxes array (returns new count or keeps old if overflow)
+// safe push into boxes array
 static size_t push_box(Box *boxes, size_t count, size_t max_boxes, Box b)
 {
     if (count >= max_boxes)
@@ -220,9 +220,7 @@ static size_t push_box(Box *boxes, size_t count, size_t max_boxes, Box b)
     boxes[count] = b;
     return count + 1;
 }
-// For each box whose width is "large" relative to its height (or absolute),
-// compute vertical projection histogram inside the box and find valley columns where
-// the column count <= valley_threshold. Use these columns as separators.
+// For each box whose width is "large" relative to its height (or absolute).
 // Create sub-boxes between separators and append them.
 size_t split_large_boxes(SDL_Surface *img, Box *boxes, size_t n, size_t max_boxes)
 {
@@ -410,7 +408,6 @@ size_t mode(size_t *arr, size_t n)
             count = 1;
             value = tab[i];
         }
-        //printf("%li %li %li %li\n", value, count, max_value, max_count);
     }
     free(tab);
     return max_value;
@@ -456,7 +453,6 @@ size_t get_count(size_t *hist, size_t max, size_t tolerance, size_t *packet_size
     size_t index = 0;
     for (size_t i = 0; i < nb_packet; i++)
     {
-        // printf("%li\n", all_packet[i]);
         if (all_packet[i] != *packet_size)
         {
             index += all_packet[i];
@@ -535,7 +531,6 @@ size_t group_letters_into_grid(SDL_Surface *img, Box *boxes, size_t n, GridLette
         printf("gap_y=%li\n", gap_y);
         save_with_marks(img, boxes, indices_x, col_count_x, nb_row, "test_detection_x");
 
-        free(indices_x);
         printf("grid x = %lix%li\n", nb_row, col_count_x);
     }
     //////////////////////////////////////////////////////////
@@ -590,20 +585,15 @@ size_t group_letters_into_grid(SDL_Surface *img, Box *boxes, size_t n, GridLette
 
         printf("grid y = %lix%li\n", row_count_y, nb_col);
     }
-return 0;
-/*
     if (nb_indices_x > nb_indices_y)
     {
         qsort(boxes, n, sizeof(*boxes), cmp_box_tolerance_x);
         if (out_row_count) *out_row_count = nb_row;
         if (out_col_count) *out_col_count = col_count_x;
-
-
-        printf("%li %li\n", *out_row_count, *out_col_count);
         for (size_t i = 0; i < nb_indices_x; i++)
         {
             if (i >= max_letters)
-                errx(EXIT_FAILURE, "max_letters = %li", max_letters);
+                errx(EXIT_FAILURE, "group_letters_into_grid max_letters = %li", max_letters);
             out_letters[i] = (GridLetter){boxes[indices_x[i]], i / col_count_x, i % col_count_x};
         }
         free(indices_x);
@@ -614,22 +604,27 @@ return 0;
     {
         if (out_row_count) *out_row_count = row_count_y;
         if (out_col_count) *out_col_count = nb_col;
-
-        printf("%li %li\n", *out_row_count,  *out_col_count);
         for (size_t i = 0; i < nb_indices_y; i++)
         {
             if (i >= max_letters)
-                errx(EXIT_FAILURE, "max_letters = %li", max_letters);
+                errx(EXIT_FAILURE, "group_letters_into_grid max_letters = %li", max_letters);
             out_letters[i] = (GridLetter){boxes[indices_y[i]], i % nb_col, i / nb_col};
         }
         free(indices_x);
         free(indices_y);
         return nb_indices_y;
     }
-    */
 }
 
 size_t group_letters_into_words(Box *boxes, size_t n, WordLetter *out_letters, size_t max_letters, size_t *out_words_count)
 {
+    if (n == 0)
+    {
+        if (out_words_count) *out_words_count = 0;
+        return 0;
+    }
+    if (0 >= max_letters)
+        errx(EXIT_FAILURE, "group_letters_into_words max_letters = %li", max_letters);
+    out_letters[0].box = boxes[0];
     return 0;
 }
