@@ -1,0 +1,8 @@
+.vscode/
+image_modifier/black_and_white/output.bmp_black_white.bmp
+image_modifier/images_bin/
+image_modifier/images_grid_letters/
+image_modifier/images_letter/
+image_modifier/tests_images/output.bmp
+image_modifier/new_test_detection_x.bmp
+image_modifier/new_test_detection_y.bmp
