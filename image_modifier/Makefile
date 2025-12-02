@@ -1,21 +1,36 @@
 CFLAGS := -Wall -Wextra -g
 #SANITYFLAGS := -fsanitize=address -fsanitize-recover=address
 LDFLAGS := -lm -lSDL2 -lSDL2_image
-TARGET := image_modifier
-SRC := main.c base_img.c preprocess.c get_letters.c
 
-$(TARGET): $(SRC)
-	gcc $(SRC) -o $@ $(CFLAGS) $(SANITYFLAGS) $(LDFLAGS)
+PREPROCESS := preprocess
+GETLETTERS := get_letters
 
-all: $(TARGET)
+all: $(PREPROCESS) $(GETLETTERS)
 
-run: $(TARGET)
-	./$(TARGET) level_1_image_1.png
-	./$(TARGET) level_1_image_2.png
-	./$(TARGET) level_2_image_1.png
-	./$(TARGET) level_2_image_2.png
-	./$(TARGET) level_3_image_1.png
-	./$(TARGET) level_3_image_2.png
+$(PREPROCESS): base_img.c preprocess.c
+	gcc base_img.c preprocess.c -o $@ $(CFLAGS) $(SANITYFLAGS) $(LDFLAGS)
 
-clean:
-	rm -f $(TARGET)
+$(GETLETTERS): base_img.c get_letters.c
+	gcc base_img.c get_letters.c -o $@ $(CFLAGS) $(SANITYFLAGS) $(LDFLAGS)
+
+run: cleanimg all
+	./$(PREPROCESS) level_1_image_1.png
+	./$(GETLETTERS) level_1_image_1.png_bw.bmp
+	./$(PREPROCESS) level_1_image_2.png
+	./$(GETLETTERS) level_1_image_2.png_bw.bmp
+#	./$(PREPROCESS) level_2_image_1.png
+#	./$(GETLETTERS) level_2_image_1.png_bw.bmp
+#	./$(PREPROCESS) level_2_image_2.png
+#	./$(GETLETTERS) level_2_image_2.png_bw.bmp
+	./$(PREPROCESS) level_3_image_1.png
+	./$(GETLETTERS) level_3_image_1.png_bw.bmp
+	./$(PREPROCESS) level_3_image_2.png
+	./$(GETLETTERS) level_3_image_2.png_bw.bmp
+
+clean: cleanimg
+	rm -f $(PREPROCESS) $(GETLETTERS)
+
+cleanimg:
+	rm -rf black_and_white/
+	rm -rf images_boxes/ images_grid_letters/ images_word_letters/
+	rm -rf debug/

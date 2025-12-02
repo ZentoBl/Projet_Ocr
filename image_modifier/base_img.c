@@ -1,8 +1,5 @@
 #include <err.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <errno.h>
-#include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "base_img.h"
 

@@ -1,8 +1,9 @@
 #include <err.h>
 #include <stdlib.h>
-#include "preprocess.h"
+#include "base_img.h"
 
 #define UCHAR_MAX  255
+#define MIN_PIXELS 22
 
 Uint8 grayscaleRGB(Uint8 r, Uint8 g, Uint8 b)
 {
@@ -246,7 +247,7 @@ void denoise_by_count(SDL_Surface *img, int min_size)
             if (p[0] != 0) // white pixel
                 continue;
             // new component
-            int stack_size = 0;
+            size_t stack_size = 0;
             int count = 0;
             stack[stack_size++] = x;
             stack[stack_size++] = y;
@@ -314,5 +315,30 @@ void process(SDL_Surface *img)
 {
     gray_scale(img);
     to_binary(img);
-    denoise_by_count(img, 20);
+    denoise_by_count(img, MIN_PIXELS);
+}
+
+int main(int argc, char **argv)
+{
+    if (argc > 2)
+        errx(EXIT_FAILURE, "argc = %i, used $ %s <inputfile> <outputfile>", argc, argv[0]);
+    const char *name_file = (argc == 2) ? argv[1] : "level_1_image_1.png";
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+        errx(EXIT_FAILURE, "SDL_Init failed");
+
+    char input[64] = "";
+    sprintf(input, "tests_images/%s", name_file);
+    SDL_Surface *img = load_img(input);
+    printf("image %s : %i x %i\n", name_file, img->w, img->h);
+
+    process(img);
+
+    char black_white_name[64] = "";
+    sprintf(black_white_name, "black_and_white/%s_bw.bmp", name_file);
+    save_img_bmp(img, black_white_name);
+
+    SDL_FreeSurface(img);
+    SDL_Quit();
+    return EXIT_SUCCESS;
 }
