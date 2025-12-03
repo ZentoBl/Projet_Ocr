@@ -16,17 +16,19 @@ typedef struct {
 // Exemple: grid_letter_level_1_image_1.png_100_15x5_(718x203_10x17).bmp
 int extraire_position(const char *nom_fichier, Position *pos) {
     // Chercher ".png_"
-    const char *p = strstr(nom_fichier, ".png_");
+    const char *p = strstr(nom_fichier, ".png_bw.bmp_");
     if (!p) return 0;
     
-    p += 5; // Sauter ".png_"
-    
+    p += strlen(".png_bw.bmp_");
+
     // Sauter l'id (nombre avant le prochain underscore)
     while (*p && *p != '_') p++;
     if (*p != '_') return 0;
     
     p++; // Sauter l'underscore
     
+    printf("%s\n",p);
+
     // Lire row x col
     int row, col;
     if (sscanf(p, "%dx%d_", &row, &col) == 2) {
