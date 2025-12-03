@@ -4,10 +4,12 @@
 #include <MagickWand/MagickWand.h>
 
 // Paramètres de recherche
-#define MIN_ANGLE -45.0
-#define MAX_ANGLE  45.0
-#define STEP_ANGLE  1.0   // Précision de 1 degré (suffisant pour lire)
-#define WORK_WIDTH  600   // Redimensionner l'analyse pour la vitesse
+#define MIN_ANGLE    -45.0
+#define MAX_ANGLE     45.0
+#define COARSE_STEP    3.0   // balayage grossier
+#define FINE_WINDOW    3.0   // fenêtre autour du meilleur angle grossier
+#define FINE_STEP      0.25  // balayage fin
+#define WORK_WIDTH   600     // Redimensionner l'analyse pour la vitesse
 
 static void ThrowWandException(MagickWand *wand) {
     char *description;
@@ -25,12 +27,12 @@ double calculate_alignment_score(MagickWand *wand) {
     size_t height = MagickGetImageHeight(wand);
     
     // On récupère les pixels en brut (Gris 'I' = Intensité)
-    unsigned char *pixels = malloc(width * height * sizeof(unsigned char));
+    unsigned char *pixels = (unsigned char*) malloc(width * height * sizeof(unsigned char));
     if (!pixels) return 0.0;
     
     MagickExportImagePixels(wand, 0, 0, width, height, "I", CharPixel, pixels);
 
-    unsigned long *row_sums = calloc(height, sizeof(unsigned long));
+    unsigned long *row_sums = (unsigned long*) calloc(height, sizeof(unsigned long));
     double total_sum = 0.0;
 
     // On somme les valeurs de pixels ligne par ligne
@@ -94,26 +96,60 @@ int main(int argc, char **argv) {
     MagickSetImageColorspace(worker, GRAYColorspace);
     MagickThresholdImage(worker, 0.5 * QuantumRange);
 
+    // Paramètre virtual pixel pour accélérer la rotation
+    MagickSetImageVirtualPixelMethod(worker, BackgroundVirtualPixelMethod);
+
+    // Dimensions de référence (pour recadrer après rotation et éviter d'exporter de grosses images)
+    const size_t base_w = MagickGetImageWidth(worker);
+    const size_t base_h = MagickGetImageHeight(worker);
+
     printf("Recherche de l'angle optimal (%dpx de large)...\n", (int)MagickGetImageWidth(worker));
 
     double best_angle = 0.0;
     double max_score = -1.0;
 
-    // 3. Boucle de test brute force intelligente
-    for (double angle = MIN_ANGLE; angle <= MAX_ANGLE; angle += STEP_ANGLE) {
+    // 3. Recherche en deux passes (grossière puis fine)
+    // 3.a Passer grossière
+    for (double angle = MIN_ANGLE; angle <= MAX_ANGLE; angle += COARSE_STEP) {
         MagickWand *temp = CloneMagickWand(worker);
-        
-        // Rotation avec fond blanc
         MagickRotateImage(temp, white_bg, angle);
-        
-        // Calcul du score
+        // Recadrer au centre aux dimensions de référence pour un score plus stable et export plus petit
+        size_t rw = MagickGetImageWidth(temp);
+        size_t rh = MagickGetImageHeight(temp);
+        ssize_t cx = (ssize_t)((rw > base_w) ? (rw - base_w) / 2 : 0);
+        ssize_t cy = (ssize_t)((rh > base_h) ? (rh - base_h) / 2 : 0);
+        if (rw != base_w || rh != base_h) {
+            MagickCropImage(temp, base_w, base_h, cx, cy);
+        }
         double score = calculate_alignment_score(temp);
-        
         if (score > max_score) {
             max_score = score;
             best_angle = angle;
         }
-        
+        DestroyMagickWand(temp);
+    }
+
+    // 3.b Affinage autour du meilleur angle grossier
+    double refine_min = best_angle - FINE_WINDOW;
+    double refine_max = best_angle + FINE_WINDOW;
+    if (refine_min < MIN_ANGLE) refine_min = MIN_ANGLE;
+    if (refine_max > MAX_ANGLE) refine_max = MAX_ANGLE;
+
+    for (double angle = refine_min; angle <= refine_max; angle += FINE_STEP) {
+        MagickWand *temp = CloneMagickWand(worker);
+        MagickRotateImage(temp, white_bg, angle);
+        size_t rw = MagickGetImageWidth(temp);
+        size_t rh = MagickGetImageHeight(temp);
+        ssize_t cx = (ssize_t)((rw > base_w) ? (rw - base_w) / 2 : 0);
+        ssize_t cy = (ssize_t)((rh > base_h) ? (rh - base_h) / 2 : 0);
+        if (rw != base_w || rh != base_h) {
+            MagickCropImage(temp, base_w, base_h, cx, cy);
+        }
+        double score = calculate_alignment_score(temp);
+        if (score > max_score) {
+            max_score = score;
+            best_angle = angle;
+        }
         DestroyMagickWand(temp);
     }
 
