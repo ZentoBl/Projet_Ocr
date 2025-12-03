@@ -75,6 +75,79 @@ void on_rotation_value_changed(GtkSpinButton *spin, gpointer user_data) {
     apply_rotation(app);
 }
 
+// Gestionnaire pour le bouton de rotation automatique
+void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
+    AppData *app = (AppData *)user_data;
+    
+    // Vérifier qu'une image est chargée
+    if (!app->original_pixbuf) {
+        g_print("Aucune image à faire pivoter automatiquement\n");
+        return;
+    }
+    
+    // Sauvegarder l'image temporairement
+    const char *temp_input = "automatic_rotation/temp_input.bmp";
+    GError *error = NULL;
+    
+    // Récupérer le pixbuf actuel
+    GdkPixbuf *current_pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(app->image));
+    
+    if (current_pixbuf) {
+        // Sauvegarder en BMP
+        if (gdk_pixbuf_save(current_pixbuf, temp_input, "bmp", &error, NULL)) {
+            g_print("Image sauvegardée pour rotation automatique: %s\n", temp_input);
+            
+            // Appeler le programme de rotation automatique
+            gchar *command = g_strdup_printf("cd automatic_rotation && ./rotate_bmp_im temp_input.bmp");
+            g_print("Exécution de: %s\n", command);
+            
+            int result = system(command);
+            g_free(command);
+            
+            if (result == 0) {
+                g_print("Rotation automatique terminée avec succès\n");
+                
+                // Charger l'image pivotée
+                const char *rotated_filename = "automatic_rotation/final_rotated.bmp";
+                GdkPixbuf *rotated_pixbuf = gdk_pixbuf_new_from_file(rotated_filename, &error);
+                
+                if (rotated_pixbuf) {
+                    // Libérer l'ancien pixbuf original
+                    if (app->original_pixbuf) {
+                        g_object_unref(app->original_pixbuf);
+                    }
+                    
+                    // Remplacer l'image originale par l'image pivotée
+                    app->original_pixbuf = rotated_pixbuf;
+                    
+                    // Réinitialiser l'angle de rotation manuelle
+                    app->rotation_angle = 0.0;
+                    
+                    // Mettre à jour le spinbutton
+                    GtkWidget *rotation_spin = GTK_WIDGET(gtk_builder_get_object(app->builder, "rotation_spin"));
+                    if (rotation_spin) {
+                        gtk_spin_button_set_value(GTK_SPIN_BUTTON(rotation_spin), 0.0);
+                    }
+                    
+                    // Afficher l'image pivotée
+                    gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), app->original_pixbuf);
+                    
+                    g_print("Image pivotée automatiquement chargée et affichée\n");
+                } else {
+                    g_printerr("Erreur lors du chargement de l'image pivotée: %s\n", 
+                               error ? error->message : "fichier introuvable");
+                    if (error) g_error_free(error);
+                }
+            } else {
+                g_printerr("Erreur lors de l'exécution de la rotation automatique (code: %d)\n", result);
+            }
+        } else {
+            g_printerr("Erreur lors de la sauvegarde temporaire: %s\n", error->message);
+            g_error_free(error);
+        }
+    }
+}
+
 // Gestionnaire pour le bouton d'importation d'image
 void on_import_button_clicked(GtkButton *button, gpointer user_data) {
     AppData *app = (AppData *)user_data;
@@ -123,9 +196,7 @@ void on_import_button_clicked(GtkButton *button, gpointer user_data) {
     }
     
     gtk_widget_destroy(dialog);
-}
-
-// Gestionnaire pour le bouton de téléchargement
+}// Gestionnaire pour le bouton de téléchargement
 void on_download_button_clicked(GtkButton *button, gpointer user_data) {
     AppData *app = (AppData *)user_data;
     
@@ -338,6 +409,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Récupérer le bouton de rotation automatique
+    GtkWidget *auto_rotate_button = GTK_WIDGET(gtk_builder_get_object(app.builder, "auto_rotate_button"));
+    
+    if (!auto_rotate_button) {
+        g_printerr("Impossible de trouver 'auto_rotate_button'\n");
+        return 1;
+    }
+
     // Récupérer le bouton de téléchargement
     GtkWidget *download_button = GTK_WIDGET(gtk_builder_get_object(app.builder, "download_button"));
     
@@ -346,12 +425,25 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
+    // Récupérer les boutons du header bar
+    GtkWidget *header_import_button = GTK_WIDGET(gtk_builder_get_object(app.builder, "header_import_button"));
+    GtkWidget *header_save_button = GTK_WIDGET(gtk_builder_get_object(app.builder, "header_save_button"));
+    
     // Connecter les signaux manuellement
     g_signal_connect(app.window, "destroy", G_CALLBACK(on_window_destroy), NULL);
     g_signal_connect(import_button, "clicked", G_CALLBACK(on_import_button_clicked), &app);
     g_signal_connect(rotation_spin, "value-changed", G_CALLBACK(on_rotation_value_changed), &app);
+    g_signal_connect(auto_rotate_button, "clicked", G_CALLBACK(on_auto_rotate_button_clicked), &app);
     g_signal_connect(convert_button, "clicked", G_CALLBACK(on_convert_button_clicked), &app);
     g_signal_connect(download_button, "clicked", G_CALLBACK(on_download_button_clicked), &app);
+    
+    // Connecter les boutons du header aux mêmes fonctions
+    if (header_import_button) {
+        g_signal_connect(header_import_button, "clicked", G_CALLBACK(on_import_button_clicked), &app);
+    }
+    if (header_save_button) {
+        g_signal_connect(header_save_button, "clicked", G_CALLBACK(on_download_button_clicked), &app);
+    }
     
     // Afficher la fenêtre
     gtk_widget_show_all(app.window);
