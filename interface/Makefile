@@ -5,13 +5,15 @@ TARGET := interface
 
 .PHONY: all clean subdirs
 
+all: subdirs $(TARGET)
+
 $(TARGET): $(SRC)
 	gcc $(SRC) -o $@ $(CFLAGS) $(LIBS)
 
 subdirs:
 	$(MAKE) -C automatic_rotation
 
-all: subdirs $(TARGET)
+
 
 clean:
 	rm -f $(TARGET)
