@@ -15,3 +15,4 @@ all: $(TARGET)
 
 clean:
 	rm -f $(TARGET)
+	rm -f final_rotated.bmp

@@ -123,16 +123,42 @@ void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
                     // Réinitialiser l'angle de rotation manuelle
                     app->rotation_angle = 0.0;
                     
-                    // Mettre à jour le spinbutton
-                    GtkWidget *rotation_spin = GTK_WIDGET(gtk_builder_get_object(app->builder, "rotation_spin"));
-                    if (rotation_spin) {
-                        gtk_spin_button_set_value(GTK_SPIN_BUTTON(rotation_spin), 0.0);
-                    }
+                    // Spinbutton supprimé, pas de mise à jour nécessaire
                     
                     // Afficher l'image pivotée
                     gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), app->original_pixbuf);
                     
                     g_print("Image pivotée automatiquement chargée et affichée\n");
+
+                    // Sauvegarder l'image pivotée pour l'exécutable preprocess/get_letters
+                    const char *saved_rotated_input = "../image_modifier/tests_images/gui_input_rotated.png";
+                    GError *save_err = NULL;
+                    if (gdk_pixbuf_save(app->original_pixbuf, saved_rotated_input, "png", &save_err, NULL)) {
+                        g_print("Image pivotée sauvegardée: %s\n", saved_rotated_input);
+                        // Lancer preprocess sur l'image pivotée pour produire le N&B
+                        gchar *pre_cmd = g_strdup_printf("cd ../image_modifier && ./preprocess gui_input_rotated.png");
+                        g_print("Exécution de: %s\n", pre_cmd);
+                        int pre_res = system(pre_cmd);
+                        g_free(pre_cmd);
+                        if (pre_res == 0) {
+                            g_print("Conversion Noir & Blanc (post-rotation) terminée avec succès\n");
+                            // Appeler get_letters sur la sortie N&B
+                            gchar *letters_cmd = g_strdup_printf("cd ../image_modifier && ./get_letters gui_input_rotated.png_bw.bmp");
+                            g_print("Exécution de: %s\n", letters_cmd);
+                            int letters_res = system(letters_cmd);
+                            g_free(letters_cmd);
+                            if (letters_res == 0) {
+                                g_print("Détection des lettres terminée avec succès\n");
+                            } else {
+                                g_printerr("Erreur lors de l'exécution de get_letters (code: %d)\n", letters_res);
+                            }
+                        } else {
+                            g_printerr("Erreur lors de l'exécution de preprocess (post-rotation) (code: %d)\n", pre_res);
+                        }
+                    } else {
+                        g_printerr("Erreur lors de la sauvegarde de l'image pivotée: %s\n", save_err ? save_err->message : "inconnue");
+                        if (save_err) g_error_free(save_err);
+                    }
                 } else {
                     g_printerr("Erreur lors du chargement de l'image pivotée: %s\n", 
                                error ? error->message : "fichier introuvable");
@@ -276,7 +302,7 @@ void on_download_button_clicked(GtkButton *button, gpointer user_data) {
 
 
 
-// Gestionnaire pour le bouton de conversion en BMP
+// Gestionnaire pour le bouton Noir & Blanc via executable preprocess
 void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
     AppData *app = (AppData *)user_data;
     
@@ -286,8 +312,8 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
         return;
     }
     
-    // Nom du fichier de sortie (dans le répertoire courant)
-    const char *output_filename = "../image_modifier/tests_images/output.bmp";
+    // Nom du fichier d'entrée pour preprocess (dans image_modifier/tests_images)
+    const char *preprocess_input = "../image_modifier/tests_images/gui_input.png";
     
     // Récupérer le pixbuf actuel (avec rotation appliquée)
     GdkPixbuf *current_pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(app->image));
@@ -295,24 +321,24 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
     if (current_pixbuf) {
         GError *error = NULL;
         
-        // Sauvegarder en BMP dans le répertoire courant
-        if (gdk_pixbuf_save(current_pixbuf, output_filename, "bmp", &error, NULL)) {
-            g_print("Image convertie et sauvegardée: %s\n", output_filename);
-            
-            // Appeler l'exécutable externe avec output.bmp
-            gchar *command = g_strdup_printf("cd ../image_modifier/ && ./image_modifier output.bmp");
+        // Sauvegarder l'image actuelle en PNG pour preprocess
+        if (gdk_pixbuf_save(current_pixbuf, preprocess_input, "png", &error, NULL)) {
+            g_print("Image sauvegardée pour preprocess: %s\n", preprocess_input);
+
+            // Appeler l'exécutable preprocess sur le fichier sauvegardé (il préfixe tests_images/ lui-même)
+            gchar *command = g_strdup_printf("cd ../image_modifier/ && ./preprocess gui_input.png");
             g_print("Exécution de: %s\n", command);
-            
+
             int result = system(command);
             g_free(command);
-            
+
             if (result == 0) {
-                g_print("Traitement externe terminé avec succès\n");
-                
-                // Charger l'image de sortie (temp_output.bmp)
-                const char *processed_filename = "../image_modifier/black_and_white/output.bmp_black_white.bmp";
+                g_print("Conversion Noir & Blanc terminée avec succès\n");
+
+                // Chemin de sortie généré par preprocess
+                const char *processed_filename = "../image_modifier/black_and_white/gui_input.png_bw.bmp";
                 GdkPixbuf *processed_pixbuf = gdk_pixbuf_new_from_file(processed_filename, &error);
-                
+
                 if (processed_pixbuf) {
                     // Libérer l'ancien pixbuf original
                     if (app->original_pixbuf) {
@@ -328,17 +354,17 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
                     // Afficher l'image traitée
                     gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), app->original_pixbuf);
                     
-                    g_print("Image traitée chargée et affichée\n");
+                    g_print("Image Noir & Blanc chargée et affichée\n");
                 } else {
-                    g_printerr("Erreur lors du chargement de l'image traitée: %s\n", 
+                    g_printerr("Erreur lors du chargement de l'image Noir & Blanc: %s\n", 
                                error ? error->message : "fichier introuvable");
                     if (error) g_error_free(error);
                 }
             } else {
-                g_printerr("Erreur lors de l'exécution de l'exécutable externe (code: %d)\n", result);
+                g_printerr("Erreur lors de l'exécution de preprocess (code: %d)\n", result);
             }
         } else {
-            g_printerr("Erreur lors de la sauvegarde: %s\n", error->message);
+            g_printerr("Erreur lors de la sauvegarde pour preprocess: %s\n", error->message);
             g_error_free(error);
         }
     }
@@ -393,13 +419,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    // Récupérer le spinbutton de rotation
-    GtkWidget *rotation_spin = GTK_WIDGET(gtk_builder_get_object(app.builder, "rotation_spin"));
-    
-    if (!rotation_spin) {
-        g_printerr("Impossible de trouver 'rotation_spin'\n");
-        return 1;
-    }
+    // Le spinbutton de rotation a été retiré de l'interface
     
     // Récupérer le bouton de conversion
     GtkWidget *convert_button = GTK_WIDGET(gtk_builder_get_object(app.builder, "convert_button"));
@@ -432,7 +452,7 @@ int main(int argc, char *argv[]) {
     // Connecter les signaux manuellement
     g_signal_connect(app.window, "destroy", G_CALLBACK(on_window_destroy), NULL);
     g_signal_connect(import_button, "clicked", G_CALLBACK(on_import_button_clicked), &app);
-    g_signal_connect(rotation_spin, "value-changed", G_CALLBACK(on_rotation_value_changed), &app);
+    // Pas de connexion au spinbutton (supprimé)
     g_signal_connect(auto_rotate_button, "clicked", G_CALLBACK(on_auto_rotate_button_clicked), &app);
     g_signal_connect(convert_button, "clicked", G_CALLBACK(on_convert_button_clicked), &app);
     g_signal_connect(download_button, "clicked", G_CALLBACK(on_download_button_clicked), &app);

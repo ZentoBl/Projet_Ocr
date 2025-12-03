@@ -6,7 +6,7 @@
 // Paramètres de recherche
 #define MIN_ANGLE -45.0
 #define MAX_ANGLE  45.0
-#define STEP_ANGLE  0.5   // Précision de 1 degré (suffisant pour lire)
+#define STEP_ANGLE  1.0   // Précision de 1 degré (suffisant pour lire)
 #define WORK_WIDTH  600   // Redimensionner l'analyse pour la vitesse
 
 static void ThrowWandException(MagickWand *wand) {
