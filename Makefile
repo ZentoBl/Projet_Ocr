@@ -7,8 +7,8 @@ all: $(SUBDIRS)
 $(SUBDIRS):
 	$(MAKE) -C $@
 
-run:
-	$(MAKE) -C image_modifier run
+run: all
+	cd interface && ./interface
 
 clean:
 	@for dir in $(SUBDIRS); do \

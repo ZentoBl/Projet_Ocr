@@ -447,7 +447,7 @@ size_t group_letters_into_grid(Box *boxes, size_t n,
         size_t *hist_x = calloc(max_x + 1, sizeof(size_t));
         for (size_t i = 0; i < n; i++)
             hist_x[boxes[i].cx]++;
-        nb_indices_x = get_grid_size(hist_x, max_x, TOLERANCE_X, &nb_row, &col_count_x, indices_x);
+        nb_indices_x = get_grid_size(hist_x, max_x, TOLERANCE_X*3, &nb_row, &col_count_x, indices_x);
         free(hist_x);
         size_t *gap_y_i = malloc(nb_row * sizeof(size_t));
         size_t *all_gap_y = malloc(col_count_x * sizeof(size_t));
@@ -498,7 +498,7 @@ size_t group_letters_into_grid(Box *boxes, size_t n,
         size_t *hist_y = calloc(max_y + 1, sizeof(size_t));
         for (size_t i = 0; i < n; i++)
             hist_y[boxes[i].cy]++;
-        nb_indices_y = get_grid_size(hist_y, max_y, TOLERANCE_Y, &nb_col, &row_count_y, indices_y);
+        nb_indices_y = get_grid_size(hist_y, max_y, TOLERANCE_Y*3, &nb_col, &row_count_y, indices_y);
         free(hist_y);
         size_t *gap_x_i = malloc(nb_col * sizeof(size_t));
         size_t *all_gap_x = malloc(row_count_y * sizeof(size_t));

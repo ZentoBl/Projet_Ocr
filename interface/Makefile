@@ -13,7 +13,8 @@ $(TARGET): $(SRC)
 subdirs:
 	$(MAKE) -C automatic_rotation
 
-
+run: all
+	./$(TARGET)
 
 clean:
 	rm -f $(TARGET)

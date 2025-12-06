@@ -34,5 +34,4 @@ cleanimg:
 	rm -rf black_and_white/
 	rm -rf images_boxes/ images_grid_letters/ images_word_letters/
 	rm -rf debug/
-	rm -f tests_images/gui_input.png
-	rm -f tests_images/gui_input_rotated.png
+	rm -f tests_images/gui_input.png tests_images/gui_input_rotated.png
