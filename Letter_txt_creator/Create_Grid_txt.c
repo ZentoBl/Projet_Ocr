@@ -119,22 +119,22 @@ void creer_grille(const char *repertoire, const char *fichier_sortie) {
     int nb_rows = max_row - min_row + 1;
     int nb_cols = max_col - min_col + 1;
     
-    printf("Dimensions de la grille: %d lignes x %d colonnes\n", nb_rows, nb_cols);
-    printf("Positions attendues: %d (fichiers trouvés: %d)\n", nb_rows * nb_cols, nb_positions);
+    printf("Dimensions de la grille: %d lignes x %d colonnes\n", nb_cols, nb_rows);
+    printf("Positions attendues: %d (fichiers trouvés: %d)\n", nb_cols * nb_rows, nb_positions);
     
     // Créer la grille
-    char **grille = malloc(nb_rows * sizeof(char *));
-    for (int i = 0; i < nb_rows; i++) {
-        grille[i] = malloc((nb_cols + 1) * sizeof(char));
-        memset(grille[i], ' ', nb_cols);
-        grille[i][nb_cols] = '\0';
+    char **grille = malloc(nb_cols * sizeof(char *));
+    for (int i = 0; i < nb_cols; i++) {
+        grille[i] = malloc((nb_rows + 1) * sizeof(char));
+        memset(grille[i], ' ', nb_rows);
+        grille[i][nb_rows] = '\0';
     }
     
     // Placer les X aux positions (en normalisant avec min_row et min_col)
     for (int i = 0; i < nb_positions; i++) {
         int r = positions[i].row - min_row;
         int c = positions[i].col - min_col;
-        grille[r][c] = 'X';
+        grille[c][r] = 'X';
     }
     
     // Écrire dans le fichier
@@ -144,7 +144,7 @@ void creer_grille(const char *repertoire, const char *fichier_sortie) {
         return;
     }
     
-    for (int i = 0; i < nb_rows; i++) {
+    for (int i = 0; i < nb_cols; i++) {
         fprintf(f, "%s\n", grille[i]);
     }
     fclose(f);
@@ -152,7 +152,7 @@ void creer_grille(const char *repertoire, const char *fichier_sortie) {
     printf("Grille créée dans %s\n", fichier_sortie);
     
     // Libérer la mémoire
-    for (int i = 0; i < nb_rows; i++) {
+    for (int i = 0; i < nb_cols; i++) {
         free(grille[i]);
     }
     free(grille);
