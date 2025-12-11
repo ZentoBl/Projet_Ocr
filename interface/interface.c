@@ -97,7 +97,7 @@ void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
         if (gdk_pixbuf_save(current_pixbuf, temp_input, "bmp", &error, NULL)) {
             g_print("Image sauvegardée pour rotation automatique: %s\n", temp_input);
             
-            // Appeler le programme de rotation automatique
+            // Appeler le programme de rotation automatique avec ImageMagick
             gchar *command = g_strdup_printf("cd automatic_rotation && ./rotate_bmp_im temp_input.bmp");
             g_print("Exécution de: %s\n", command);
             

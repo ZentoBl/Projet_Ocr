@@ -8,7 +8,7 @@
 #define MAX_ANGLE     45.0
 #define COARSE_STEP    3.0   // balayage grossier
 #define FINE_WINDOW    3.0   // fenêtre autour du meilleur angle grossier
-#define FINE_STEP      0.25  // balayage fin
+#define FINE_STEP      1  // balayage fin
 #define WORK_WIDTH   600     // Redimensionner l'analyse pour la vitesse
 
 static void ThrowWandException(MagickWand *wand) {
@@ -155,10 +155,60 @@ int main(int argc, char **argv) {
 
     printf("Angle détecté : %.1f degrés (Score: %.0f)\n", best_angle, max_score);
 
-    // 4. Application finale sur l'image ORIGINALE (Haute Qualité)
-    // On applique la rotation inverse ou directe selon le besoin.
+    // 4. Choisir le signe d'angle qui redresse le mieux
+    double apply_angle = best_angle;
+    {
+        // Évaluer score pour best_angle
+        MagickWand *testA = CloneMagickWand(worker);
+        MagickRotateImage(testA, white_bg, best_angle);
+        size_t rwA = MagickGetImageWidth(testA);
+        size_t rhA = MagickGetImageHeight(testA);
+        ssize_t cxA = (ssize_t)((rwA > base_w) ? (rwA - base_w) / 2 : 0);
+        ssize_t cyA = (ssize_t)((rhA > base_h) ? (rhA - base_h) / 2 : 0);
+        if (rwA != base_w || rhA != base_h) {
+            MagickCropImage(testA, base_w, base_h, cxA, cyA);
+        }
+        double scoreA = calculate_alignment_score(testA);
+        DestroyMagickWand(testA);
+
+        // Évaluer score pour -best_angle
+        MagickWand *testB = CloneMagickWand(worker);
+        MagickRotateImage(testB, white_bg, -best_angle);
+        size_t rwB = MagickGetImageWidth(testB);
+        size_t rhB = MagickGetImageHeight(testB);
+        ssize_t cxB = (ssize_t)((rwB > base_w) ? (rwB - base_w) / 2 : 0);
+        ssize_t cyB = (ssize_t)((rhB > base_h) ? (rhB - base_h) / 2 : 0);
+        if (rwB != base_w || rhB != base_h) {
+            MagickCropImage(testB, base_w, base_h, cxB, cyB);
+        }
+        double scoreB = calculate_alignment_score(testB);
+        DestroyMagickWand(testB);
+
+        // Choisir l'angle avec le meilleur score
+        if (scoreB > scoreA) {
+            apply_angle = -best_angle;
+        } else {
+            apply_angle = best_angle;
+        }
+        printf("Application angle: %.2f° (scoreA=%.0f, scoreB=%.0f)\n", apply_angle, scoreA, scoreB);
+    }
+
+    // 5. Application finale sur l'image ORIGINALE (Haute Qualité)
     // MagickRotateImage tourne dans le sens horaire pour un angle positif.
-    MagickRotateImage(orig, white_bg, best_angle);
+    MagickRotateImage(orig, white_bg, apply_angle);
+
+    // 6. Recadrage léger : enlever seulement les bandes blanches extrêmes
+    // Réduire légèrement si l'image a grandi (limiter à +20% max)
+    size_t rotated_w = MagickGetImageWidth(orig);
+    size_t rotated_h = MagickGetImageHeight(orig);
+    if (rotated_w > 1300 || rotated_h > 1100) {  // Seuils adapté au doc standard
+        // Recadrer modérément
+        size_t new_w = (rotated_w > 1300) ? 1300 : rotated_w;
+        size_t new_h = (rotated_h > 1100) ? 1100 : rotated_h;
+        ssize_t offset_x = (ssize_t)((rotated_w - new_w) / 2);
+        ssize_t offset_y = (ssize_t)((rotated_h - new_h) / 2);
+        MagickCropImage(orig, new_w, new_h, offset_x, offset_y);
+    }
 
     char outname[256];
     snprintf(outname, 256, "final_rotated.bmp");
