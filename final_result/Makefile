@@ -24,7 +24,10 @@ run: all
 		solver_output.txt \
 		annotated.png
 
-clean:
+clean:cleanimg
 	rm -f *.o ocr_draw
+	
+
+cleanimg:
 	rm -f solver_output.txt annotated.png
 	rm -f original_image_rotated.bmp

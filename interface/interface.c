@@ -230,6 +230,31 @@ void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
         g_printerr("Erreur create_grid mots (code: %d)\n", word_res);
     }
 
+    // Étape 7: make run (final_result)
+    if (word_res == 0) {
+        g_print("=== Étape 7: make run (final_result) ===\n");
+        gchar *make_run_cmd = g_strdup("cd ../final_result && make run");
+        int make_run_res = system(make_run_cmd);
+        g_free(make_run_cmd);
+        if (make_run_res != 0) {
+            g_printerr("Erreur make run (code: %d)\n", make_run_res);
+        } else {
+            // Charger et afficher l'image annotée produite par final_result
+            const char *annotated_path = "../final_result/annotated.png";
+            error = NULL;
+            GdkPixbuf *annotated_pixbuf = gdk_pixbuf_new_from_file(annotated_path, &error);
+            if (!annotated_pixbuf) {
+                g_printerr("Erreur chargement annotated.png: %s\\n", error ? error->message : "fichier introuvable");
+                if (error) g_error_free(error);
+            } else {
+                if (app->original_pixbuf) g_object_unref(app->original_pixbuf);
+                app->original_pixbuf = annotated_pixbuf;
+                gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), app->original_pixbuf);
+                g_print("Image annotée affichée: %s\\n", annotated_path);
+            }
+        }
+    }
+
     // Nettoyage
     g_object_unref(reprocessed_bw_pixbuf);
     g_free(reprocessed_bw_path);
@@ -264,6 +289,32 @@ void on_import_button_clicked(GtkButton *button, gpointer user_data) {
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
         
+        // Nettoyer les anciennes images générées dans les sous-projets
+        g_print("Nettoyage des images générées (cleanimg) ...\n");
+        int ci_res;
+        gchar *ci_cmd;
+
+        ci_cmd = g_strdup("cd ../final_result && make cleanimg");
+        ci_res = system(ci_cmd);
+        g_free(ci_cmd);
+        if (ci_res != 0) {
+            g_printerr("Erreur cleanimg (final_result): %d\n", ci_res);
+        }
+
+        ci_cmd = g_strdup("cd ../image_modifier && make cleanimg");
+        ci_res = system(ci_cmd);
+        g_free(ci_cmd);
+        if (ci_res != 0) {
+            g_printerr("Erreur cleanimg (image_modifier): %d\n", ci_res);
+        }
+
+        ci_cmd = g_strdup("cd ../Letter_txt_creator && make cleanimg");
+        ci_res = system(ci_cmd);
+        g_free(ci_cmd);
+        if (ci_res != 0) {
+            g_printerr("Erreur cleanimg (Letter_txt_creator): %d\n", ci_res);
+        }
+
         // Libérer l'ancien pixbuf si existant
         if (app->original_pixbuf) {
             g_object_unref(app->original_pixbuf);

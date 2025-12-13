@@ -67,8 +67,10 @@ char* recognize_image(const char* model_path, const char* image_path) {
     
     if (image_surface->w > INPUT_WIDTH+2 || image_surface->h > INPUT_HEIGHT+2) 
     {
+        // Always return heap-allocated strings to allow caller to free safely
+        char* too_large = strdup("LAA");
         SDL_FreeSurface(image_surface);
-        return "LAA";
+        return too_large;
     }
 
     char result = recognize(image_surface);
