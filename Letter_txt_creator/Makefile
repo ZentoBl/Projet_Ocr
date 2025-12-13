@@ -1,5 +1,4 @@
-CFLAGS = -Wall -Wextra -g
-#MAGICK_CFLAGS = `pkg-config --cflags `
+CFLAGS = -Wall -Wextra -g -LSDL2
 
 
 TARGETS = create_grid
