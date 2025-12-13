@@ -11,13 +11,46 @@ typedef struct {
     int col;
 } Position;
 
-// Fonction pour extraire row et col du nom de fichier
-// Format: grid_letter_level_1_image_1.png_{id}_{row}x{col}_(...)
-// Exemple: grid_letter_level_1_image_1.png_100_15x5_(718x203_10x17).bmp
-int extraire_position(const char *nom_fichier, Position *pos) {
+// Version originale de la fonction extraire_position (sans inversion)
+int extraire_position_original(const char *nom_fichier, Position *pos) {
     // Chercher ".png_"
     const char *p = strstr(nom_fichier, ".png_bw.bmp_");
     if (!p) return 0;
+    
+    p += strlen(".png_bw.bmp_");
+
+    // Sauter l'id (nombre avant le prochain underscore)
+    while (*p && *p != '_') p++;
+    if (*p != '_') return 0;
+    
+    p++; // Sauter l'underscore
+    
+    printf("%s\n",p);
+    const char *debut = nom_fichier;
+    // Lire row x col
+    int row, col;
+    if (sscanf(p, "%dx%d_", &row, &col) == 2) {
+        // Vérifier si le nom du fichier contient "level_2_image_1" avant ".png_bw.bmp_"
+        if (strstr(debut, "level_2_image_1") != NULL) {
+            // Inverser row et col
+            pos->row = col;
+            pos->col = row;
+        } else {
+            pos->row = row;
+            pos->col = col;
+        }
+        return 1;
+    }
+    
+    return 0;
+}
+
+// Nouvelle version avec inversion conditionnelle pour level_2_image_1
+int extraire_position_word(const char *nom_fichier, Position *pos) {
+    // Chercher ".png_"
+    const char *p = strstr(nom_fichier, ".png_bw.bmp_");
+    if (!p) return 0;
+    
     
     p += strlen(".png_bw.bmp_");
 
@@ -32,13 +65,19 @@ int extraire_position(const char *nom_fichier, Position *pos) {
     // Lire row x col
     int row, col;
     if (sscanf(p, "%dx%d_", &row, &col) == 2) {
-        pos->row = row;
-        pos->col = col;
+        // Vérifier si le nom du fichier contient "level_2_image_1" avant ".png_bw.bmp_"
+        
+            pos->row = row;
+            pos->col = col;
+        
         return 1;
     }
     
     return 0;
 }
+
+// Pointeur de fonction global pour choisir quelle version utiliser
+int (*extraire_position)(const char *, Position *) = extraire_position_original;
 
 // Fonction de comparaison pour qsort
 int comparer_positions(const void *a, const void *b) {
@@ -164,6 +203,15 @@ int main(int argc, char *argv[]) {
     
     if (argc > 1) repertoire = argv[1];
     if (argc > 2) fichier_sortie = argv[2];
+    
+    // Vérifier si argv[2] contient "word"
+    if (argc > 1 && strstr(argv[1], "images_word_letters") != NULL) {
+        extraire_position = extraire_position_word;
+        printf("Mode: inversion pour level_2_image_1\n");
+    } else {
+        extraire_position = extraire_position_original;
+        printf("Mode: sans inversion\n");
+    }
     
     printf("Analyse du répertoire: %s\n", repertoire);
     creer_grille(repertoire, fichier_sortie);

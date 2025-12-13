@@ -8,6 +8,7 @@ typedef struct {
     GtkWidget *image;
     GdkPixbuf *original_pixbuf;  // Pour stocker l'image originale
     double rotation_angle;        // Angle de rotation en degrés
+    char input_filename[256];     // Nom du fichier d'entrée (sans chemin)
 } AppData;
 
 // Fonction pour appliquer la rotation à l'image avec Cairo
@@ -85,6 +86,12 @@ void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
         return;
     }
     
+    // Vérifier qu'un fichier d'entrée a été chargé
+    if (strlen(app->input_filename) == 0) {
+        g_print("Aucun fichier d'entrée chargé\n");
+        return;
+    }
+    
     // Sauvegarder l'image temporairement
     const char *temp_input = "automatic_rotation/temp_input.bmp";
     GError *error = NULL;
@@ -130,23 +137,25 @@ void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
                     
                     g_print("Image pivotée automatiquement chargée et affichée\n");
 
-                    // Sauvegarder l'image pivotée pour l'exécutable preprocess/get_letters
-                    const char *saved_rotated_input = "../image_modifier/tests_images/gui_input_rotated.png";
+                    // Sauvegarder l'image pivotée avec le nom du fichier d'entrée
+                    gchar *saved_rotated_input = g_strdup_printf("../image_modifier/tests_images/%s", app->input_filename);
                     GError *save_err = NULL;
                     if (gdk_pixbuf_save(app->original_pixbuf, saved_rotated_input, "png", &save_err, NULL)) {
                         g_print("Image pivotée sauvegardée: %s\n", saved_rotated_input);
                         // Lancer preprocess sur l'image pivotée pour produire le N&B
-                        gchar *pre_cmd = g_strdup_printf("cd ../image_modifier && ./preprocess gui_input_rotated.png");
+                        gchar *pre_cmd = g_strdup_printf("cd ../image_modifier && ./preprocess %s", app->input_filename);
                         g_print("Exécution de: %s\n", pre_cmd);
                         int pre_res = system(pre_cmd);
                         g_free(pre_cmd);
                         if (pre_res == 0) {
                             g_print("Conversion Noir & Blanc (post-rotation) terminée avec succès\n");
                             // Appeler get_letters sur la sortie N&B
-                            gchar *letters_cmd = g_strdup_printf("cd ../image_modifier && ./get_letters gui_input_rotated.png_bw.bmp");
+                            gchar *bw_filename = g_strdup_printf("%s_bw.bmp", app->input_filename);
+                            gchar *letters_cmd = g_strdup_printf("cd ../image_modifier && ./get_letters %s", bw_filename);
                             g_print("Exécution de: %s\n", letters_cmd);
                             int letters_res = system(letters_cmd);
                             g_free(letters_cmd);
+                            g_free(bw_filename);
                             if (letters_res == 0) {
                                 g_print("Détection des lettres terminée avec succès\n");
                             } else {
@@ -159,6 +168,7 @@ void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
                         g_printerr("Erreur lors de la sauvegarde de l'image pivotée: %s\n", save_err ? save_err->message : "inconnue");
                         if (save_err) g_error_free(save_err);
                     }
+                    g_free(saved_rotated_input);
                 } else {
                     g_printerr("Erreur lors du chargement de l'image pivotée: %s\n", 
                                error ? error->message : "fichier introuvable");
@@ -212,12 +222,15 @@ void on_import_button_clicked(GtkButton *button, gpointer user_data) {
         // Réinitialiser l'angle de rotation
         app->rotation_angle = 0.0;
         
-        
+        // Extraire le nom du fichier sans le chemin
+        const char *basename = g_path_get_basename(filename);
+        g_strlcpy(app->input_filename, basename, sizeof(app->input_filename));
         
         // Afficher l'image
         gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), app->original_pixbuf);
         
         g_print("Image chargée: %s\n", filename);
+        g_print("Nom de fichier stocké: %s\n", app->input_filename);
         g_free(filename);
     }
     
@@ -312,8 +325,14 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
         return;
     }
     
-    // Nom du fichier d'entrée pour preprocess (dans image_modifier/tests_images)
-    const char *preprocess_input = "../image_modifier/tests_images/gui_input.png";
+    // Vérifier qu'un fichier d'entrée a été chargé
+    if (strlen(app->input_filename) == 0) {
+        g_print("Aucun fichier d'entrée chargé\n");
+        return;
+    }
+    
+    // Construire le chemin du fichier d'entrée pour preprocess (dans image_modifier/tests_images)
+    gchar *preprocess_input = g_strdup_printf("../image_modifier/tests_images/%s", app->input_filename);
     
     // Récupérer le pixbuf actuel (avec rotation appliquée)
     GdkPixbuf *current_pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(app->image));
@@ -325,8 +344,8 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
         if (gdk_pixbuf_save(current_pixbuf, preprocess_input, "png", &error, NULL)) {
             g_print("Image sauvegardée pour preprocess: %s\n", preprocess_input);
 
-            // Appeler l'exécutable preprocess sur le fichier sauvegardé (il préfixe tests_images/ lui-même)
-            gchar *command = g_strdup_printf("cd ../image_modifier/ && ./preprocess gui_input.png");
+            // Appeler l'exécutable preprocess sur le fichier sauvegardé
+            gchar *command = g_strdup_printf("cd ../image_modifier/ && ./preprocess %s", app->input_filename);
             g_print("Exécution de: %s\n", command);
 
             int result = system(command);
@@ -335,8 +354,8 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
             if (result == 0) {
                 g_print("Conversion Noir & Blanc terminée avec succès\n");
 
-                // Chemin de sortie généré par preprocess
-                const char *processed_filename = "../image_modifier/black_and_white/gui_input.png_bw.bmp";
+                // Chemin de sortie généré par preprocess (avec le nom du fichier d'entrée)
+                gchar *processed_filename = g_strdup_printf("../image_modifier/black_and_white/%s_bw.bmp", app->input_filename);
                 GdkPixbuf *processed_pixbuf = gdk_pixbuf_new_from_file(processed_filename, &error);
 
                 if (processed_pixbuf) {
@@ -360,6 +379,7 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
                                error ? error->message : "fichier introuvable");
                     if (error) g_error_free(error);
                 }
+                g_free(processed_filename);
             } else {
                 g_printerr("Erreur lors de l'exécution de preprocess (code: %d)\n", result);
             }
@@ -367,6 +387,7 @@ void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
             g_printerr("Erreur lors de la sauvegarde pour preprocess: %s\n", error->message);
             g_error_free(error);
         }
+        g_free(preprocess_input);
     }
 }
 
@@ -382,6 +403,7 @@ int main(int argc, char *argv[]) {
     // Initialiser les variables
     app.original_pixbuf = NULL;
     app.rotation_angle = 0.0;
+    memset(app.input_filename, 0, sizeof(app.input_filename));
     
     // Initialiser GTK
     gtk_init(&argc, &argv);
