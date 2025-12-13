@@ -13,31 +13,37 @@ typedef struct {
     int col;
 } Position;
 
-// Version originale de la fonction extraire_position (sans inversion)
-int extraire_position_original(const char *nom_fichier, Position *pos) {
-    // Chercher ".png_"
-    const char *p = strstr(nom_fichier, ".png_bw.bmp_");
+// Original version of the extract_position function 
+// (without inversion)
+int extract_position_original(const char *filename, Position *pos) 
+{
+    // Search for ".png_"
+    const char *p = strstr(filename, ".png_bw.bmp_");
     if (!p) return 0;
     
     p += strlen(".png_bw.bmp_");
 
-    // Sauter l'id (nombre avant le prochain underscore)
+    // Skip the id (number before the next underscore)
     while (*p && *p != '_') p++;
     if (*p != '_') return 0;
     
-    p++; // Sauter l'underscore
+    p++; // Skip the underscore
     
     printf("%s\n",p);
-    const char *debut = nom_fichier;
-    // Lire row x col
+    const char *start = filename;
+    // Read row x col
     int row, col;
-    if (sscanf(p, "%dx%d_", &row, &col) == 2) {
-        // Vérifier si le nom du fichier contient "level_2_image_1" avant ".png_bw.bmp_"
-        if (strstr(debut, "level_2_image_1") != NULL) {
-            // Inverser row et col
+    if (sscanf(p, "%dx%d_", &row, &col) == 2) 
+    {
+        // Check if the filename contains "level_2_image_1" 
+        // before ".png_bw.bmp_"
+        if (strstr(start, "level_2_image_1") != NULL) 
+        {
+            // Swap row and col
             pos->row = col;
             pos->col = row;
-        } else {
+        } else 
+        {
             pos->row = row;
             pos->col = col;
         }
@@ -47,27 +53,30 @@ int extraire_position_original(const char *nom_fichier, Position *pos) {
     return 0;
 }
 
-// Nouvelle version avec inversion conditionnelle pour level_2_image_1
-int extraire_position_word(const char *nom_fichier, Position *pos) {
-    // Chercher ".png_"
-    const char *p = strstr(nom_fichier, ".png_bw.bmp_");
+// New version with conditional inversion for level_2_image_1
+int extract_position_word(const char *filename, Position *pos) 
+{
+    // Search for ".png_"
+    const char *p = strstr(filename, ".png_bw.bmp_");
     if (!p) return 0;
     
     
     p += strlen(".png_bw.bmp_");
 
-    // Sauter l'id (nombre avant le prochain underscore)
+    // Skip the id (number before the next underscore)
     while (*p && *p != '_') p++;
     if (*p != '_') return 0;
     
-    p++; // Sauter l'underscore
+    p++; // Skip the underscore
     
     printf("%s\n",p);
 
-    // Lire row x col
+    // Read row x col
     int row, col;
-    if (sscanf(p, "%dx%d_", &row, &col) == 2) {
-        // Vérifier si le nom du fichier contient "level_2_image_1" avant ".png_bw.bmp_"
+    if (sscanf(p, "%dx%d_", &row, &col) == 2) 
+    {
+        // Check if the filename contains "level_2_image_1" 
+        // before ".png_bw.bmp_"
         
             pos->row = row;
             pos->col = col;
@@ -78,189 +87,229 @@ int extraire_position_word(const char *nom_fichier, Position *pos) {
     return 0;
 }
 
-// Pointeur de fonction global pour choisir quelle version utiliser
-int (*extraire_position)(const char *, Position *) = extraire_position_original;
+// Global function pointer to choose which version to use
+int (*extract_position)(const char *, Position *) = 
+    extract_position_original;
 
-// Fonction de comparaison pour qsort
-int comparer_positions(const void *a, const void *b) {
+// Comparison function for qsort
+int compare_positions(const void *a, const void *b) 
+{
     Position *pa = (Position *)a;
     Position *pb = (Position *)b;
     
     if (pa->row != pb->row)
-        return pa->row - pb->row;  // Trier par row d'abord
-    return pa->col - pb->col;      // Puis par col
+        return pa->row - pb->row;  // Sort by row first
+    return pa->col - pb->col;      // Then by col
 }
 
-// Structure pour stocker position et résultat de reconnaissance
-typedef struct {
+// Structure to store position and recognition result
+typedef struct 
+{
     Position pos;
     char *result;
-    char chemin_image[512];
+    char image_path[512];
 } ImageData;
 
-// Fonction récursive pour parcourir les sous-dossiers
-void parcourir_dossiers(const char *chemin, ImageData *images, int *nb_images) {
+// Recursive function to traverse subdirectories
+void traverse_directories(const char *path, ImageData *images, 
+    int *nb_images)
+{
     DIR *dir;
     struct dirent *entry;
-    char chemin_complet[512];
+    char full_path[512];
     
-    dir = opendir(chemin);
-    if (!dir) {
+    dir = opendir(path);
+    if (!dir) 
+    {
         return;
     }
     
-    while ((entry = readdir(dir)) != NULL && *nb_images < MAX_FILES) {
-        // Ignorer . et ..
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+    while ((entry = readdir(dir)) != NULL && *nb_images < MAX_FILES) 
+    {
+        // Ignore . and ..
+        if (strcmp(entry->d_name, ".") == 0 || 
+        strcmp(entry->d_name, "..") == 0)
             continue;
         
-        snprintf(chemin_complet, sizeof(chemin_complet), "%s/%s", chemin, entry->d_name);
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, 
+        entry->d_name);
         
-        // Si c'est un dossier, parcourir récursivement
-        if (entry->d_type == DT_DIR) {
-            parcourir_dossiers(chemin_complet, images, nb_images);
+        // If it's a directory, traverse recursively
+        if (entry->d_type == DT_DIR) 
+        {
+            traverse_directories(full_path, images, nb_images);
         }
-        // Si c'est un fichier .bmp, extraire la position et reconnaître l'image
-        else if (strstr(entry->d_name, ".bmp") != NULL) {
+        // If it's a .bmp file, extract position and recognize the image
+        else if (strstr(entry->d_name, ".bmp") != NULL) 
+        {
             Position pos;
-            if (extraire_position(entry->d_name, &pos)) {
+            if (extract_position(entry->d_name, &pos)) 
+            {
                 images[*nb_images].pos = pos;
-                snprintf(images[*nb_images].chemin_image, sizeof(images[*nb_images].chemin_image), "%s", chemin_complet);
+                snprintf(images[*nb_images].image_path, 
+                    sizeof(images[*nb_images].image_path), "%s", 
+                    full_path);
                 images[*nb_images].result = NULL;
                 (*nb_images)++;
-                printf("Trouvé: %s -> row=%d, col=%d\n", entry->d_name, pos.row, pos.col);
+                printf("Found: %s -> row=%d, col=%d\n", 
+                    entry->d_name, pos.row, pos.col);
             }
         }
     }
     closedir(dir);
 }
 
-// Fonction principale
-void creer_grille(const char *repertoire, const char *fichier_sortie) {
+// Main function
+void create_grid(const char *directory, const char *output_file) 
+{
     ImageData images[MAX_FILES];
     int nb_images = 0;
     
-    // Parcourir récursivement tous les sous-dossiers
-    parcourir_dossiers(repertoire, images, &nb_images);
+    // Recursively traverse all subdirectories
+    traverse_directories(directory, images, &nb_images);
     
-    printf("Nombre de fichiers trouvés: %d\n", nb_images);
+    printf("Number of files found: %d\n", nb_images);
     
-    if (nb_images == 0) {
-        printf("Aucune position trouvée.\n");
+    if (nb_images == 0) 
+    {
+        printf("No positions found.\n");
         return;
     }
     
-    // Trier les positions
-    qsort(images, nb_images, sizeof(ImageData), comparer_positions);
+    // Sort positions
+    qsort(images, nb_images, sizeof(ImageData), compare_positions);
     
-    // Initialiser SDL
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        printf("Erreur: impossible d'initialiser SDL\n");
+    // Initialize SDL
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) 
+    {
+        printf("Error: unable to initialize SDL\n");
         return;
     }
     
-    // Reconnaître toutes les images
-    printf("\nRéconnaissance des images en cours...\n");
-    for (int i = 0; i < nb_images; i++) {
-        images[i].result = recognize_image("save", images[i].chemin_image);
-        if (images[i].result) {
-            printf("Image %d: %s -> Résultat: %s\n", i, images[i].chemin_image, images[i].result);
-        } else {
-            printf("Image %d: %s -> Erreur de reconnaissance\n", i, images[i].chemin_image);
+    // Recognize all images
+    printf("\nRecognizing images in progress...\n");
+    for (int i = 0; i < nb_images; i++) 
+    {
+        images[i].result = recognize_image("save", images[i].image_path);
+        if (images[i].result) 
+        {
+            printf("Image %d: %s -> Result: %s\n", i, images[i].image_path,
+                images[i].result);
+        } else 
+        {
+            printf("Image %d: %s -> Recognition error\n", i, 
+                images[i].image_path);
         }
     }
     
     SDL_Quit();
     
-    // Trouver les dimensions de la grille et afficher les statistiques
+    // Find grid dimensions and display statistics
     int max_row = 0, max_col = 0;
     int min_row = 999999, min_col = 999999;
-    for (int i = 0; i < nb_images; i++) {
+    for (int i = 0; i < nb_images; i++) 
+    {
         if (images[i].pos.row > max_row) max_row = images[i].pos.row;
         if (images[i].pos.col > max_col) max_col = images[i].pos.col;
         if (images[i].pos.row < min_row) min_row = images[i].pos.row;
         if (images[i].pos.col < min_col) min_col = images[i].pos.col;
     }
     
-    printf("Statistiques:\n");
+    printf("Statistics:\n");
     printf("  Row: min=%d, max=%d\n", min_row, max_row);
     printf("  Col: min=%d, max=%d\n", min_col, max_col);
     
     int nb_rows = max_row - min_row + 1;
     int nb_cols = max_col - min_col + 1;
     
-    printf("Dimensions de la grille: %d lignes x %d colonnes\n", nb_cols, nb_rows);
-    printf("Positions attendues: %d (fichiers trouvés: %d)\n", nb_cols * nb_rows, nb_images);
+    printf("Grid dimensions: %d rows x %d columns\n", nb_cols, nb_rows);
+    printf("Expected positions: %d (files found: %d)\n", 
+        nb_cols * nb_rows, nb_images);
     
-    // Créer la grille
-    char **grille = malloc(nb_cols * sizeof(char *));
-    for (int i = 0; i < nb_cols; i++) {
-        grille[i] = malloc((nb_rows + 1) * sizeof(char));
-        memset(grille[i], ' ', nb_rows);
-        grille[i][nb_rows] = '\0';
+    // Create the grid
+    char **grid = malloc(nb_cols * sizeof(char *));
+    for (int i = 0; i < nb_cols; i++) 
+    {
+        grid[i] = malloc((nb_rows + 1) * sizeof(char));
+        memset(grid[i], ' ', nb_rows);
+        grid[i][nb_rows] = '\0';
     }
     
-    // Placer les résultats de reconnaissance aux positions (en normalisant avec min_row et min_col)
-    for (int i = 0; i < nb_images; i++) {
+    // Place recognition results at positions 
+    // (normalizing with min_row and min_col)
+    for (int i = 0; i < nb_images; i++) 
+    {
         int r = images[i].pos.row - min_row;
         int c = images[i].pos.col - min_col;
-        if (images[i].result && images[i].result[0] != '\0') {
-            // Placer tous les caractères du résultat horizontalement
-            for (int j = 0; images[i].result[j] != '\0' && (r + j) < nb_rows; j++) {
-                grille[c][r + j] = images[i].result[j];
+        if (images[i].result && images[i].result[0] != '\0') 
+        {
+            // Place all characters of the result horizontally
+            for (int j = 0; images[i].result[j] != '\0' && 
+                (r + j) < nb_rows; j++) 
+            {
+                grid[c][r + j] = images[i].result[j];
             }
-        } else {
-            // Si pas de résultat, mettre un '?'
-            grille[c][r] = '?';
+        } else 
+        {
+            // If no result, put a '?'
+            grid[c][r] = '?';
         }
     }
     
-    // Écrire dans le fichier
-    FILE *f = fopen(fichier_sortie, "w");
-    if (!f) {
-        printf("Erreur: impossible de créer le fichier %s\n", fichier_sortie);
+    // Write to file
+    FILE *f = fopen(output_file, "w");
+    if (!f) 
+    {
+        printf("Error: unable to create file %s\n", output_file);
         return;
     }
     
-    // Écrire la grille
-    for (int i = 0; i < nb_cols; i++) {
-        fprintf(f, "%s\n", grille[i]);
+    // Write the grid
+    for (int i = 0; i < nb_cols; i++) 
+    {
+        fprintf(f, "%s\n", grid[i]);
     }
     
     fclose(f);
     
-    printf("Grille créée dans %s\n", fichier_sortie);
+    printf("Grid created in %s\n", output_file);
     
-    // Libérer la mémoire
-    for (int i = 0; i < nb_images; i++) {
-        if (images[i].result) {
+    // Free memory
+    for (int i = 0; i < nb_images; i++) 
+    {
+        if (images[i].result) 
+        {
             free(images[i].result);
         }
     }
-    for (int i = 0; i < nb_cols; i++) {
-        free(grille[i]);
+    for (int i = 0; i < nb_cols; i++) 
+    {
+        free(grid[i]);
     }
-    free(grille);
+    free(grid);
 }
 
-int main(int argc, char *argv[]) {
-    const char *repertoire = ".";
-    const char *fichier_sortie = "grille.txt";
+int main(int argc, char *argv[]) 
+{
+    const char *directory = ".";
+    const char *output_file = "grille.txt";
     
-    if (argc > 1) repertoire = argv[1];
-    if (argc > 2) fichier_sortie = argv[2];
+    if (argc > 1) directory = argv[1];
+    if (argc > 2) output_file = argv[2];
     
-    // Vérifier si argv[1] contient "word"
-    if (argc > 1 && strstr(argv[1], "images_word_letters") != NULL) {
-        extraire_position = extraire_position_word;
-        printf("Mode: inversion pour level_2_image_1\n");
-    } else {
-        extraire_position = extraire_position_original;
-        printf("Mode: sans inversion\n");
+    // Check if argv[1] contains "word"
+    if (argc > 1 && strstr(argv[1], "images_word_letters") != NULL) 
+    {
+        extract_position = extract_position_word;
+        printf("Mode: inversion for level_2_image_1\n");
+    } else 
+    {
+        extract_position = extract_position_original;
+        printf("Mode: without inversion\n");
     }
     
-    printf("Analyse du répertoire: %s\n", repertoire);
-    creer_grille(repertoire, fichier_sortie);
+    printf("Analyzing directory: %s\n", directory);
+    create_grid(directory, output_file);
     
     return 0;
 }
