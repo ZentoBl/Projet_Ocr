@@ -76,13 +76,13 @@ void on_rotation_value_changed(GtkSpinButton *spin, gpointer user_data) {
     apply_rotation(app);
 }
 
-// Gestionnaire pour le bouton de rotation automatique
+// Gestionnaire pour le bouton de traitement complet (Noir & Blanc + Rotation automatique)
 void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
     AppData *app = (AppData *)user_data;
     
     // Vérifier qu'une image est chargée
     if (!app->original_pixbuf) {
-        g_print("Aucune image à faire pivoter automatiquement\n");
+        g_print("Aucune image à traiter\n");
         return;
     }
     
@@ -92,96 +92,144 @@ void on_auto_rotate_button_clicked(GtkButton *button, gpointer user_data) {
         return;
     }
     
-    // Sauvegarder l'image temporairement
-    const char *temp_input = "automatic_rotation/temp_input.bmp";
-    GError *error = NULL;
+    // ===== ÉTAPE 1: Conversion Noir & Blanc =====
+    g_print("=== Étape 1: Conversion Noir & Blanc ===\n");
+    
+    // Créer un nom de fichier temporaire pour ne pas écraser l'original
+    gchar *temp_filename = g_strdup_printf("gui_processed_%s", app->input_filename);
+    gchar *preprocess_input = g_strdup_printf("../image_modifier/tests_images/%s", temp_filename);
     
     // Récupérer le pixbuf actuel
     GdkPixbuf *current_pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(app->image));
+    GError *error = NULL;
     
-    if (current_pixbuf) {
-        // Sauvegarder en BMP
-        if (gdk_pixbuf_save(current_pixbuf, temp_input, "bmp", &error, NULL)) {
-            g_print("Image sauvegardée pour rotation automatique: %s\n", temp_input);
-            
-            // Appeler le programme de rotation automatique avec ImageMagick
-            gchar *command = g_strdup_printf("cd automatic_rotation && ./rotate_bmp_im temp_input.bmp");
-            g_print("Exécution de: %s\n", command);
-            
-            int result = system(command);
-            g_free(command);
-            
-            if (result == 0) {
-                g_print("Rotation automatique terminée avec succès\n");
-                
-                // Charger l'image pivotée
-                const char *rotated_filename = "automatic_rotation/final_rotated.bmp";
-                GdkPixbuf *rotated_pixbuf = gdk_pixbuf_new_from_file(rotated_filename, &error);
-                
-                if (rotated_pixbuf) {
-                    // Libérer l'ancien pixbuf original
-                    if (app->original_pixbuf) {
-                        g_object_unref(app->original_pixbuf);
-                    }
-                    
-                    // Remplacer l'image originale par l'image pivotée
-                    app->original_pixbuf = rotated_pixbuf;
-                    
-                    // Réinitialiser l'angle de rotation manuelle
-                    app->rotation_angle = 0.0;
-                    
-                    // Spinbutton supprimé, pas de mise à jour nécessaire
-                    
-                    // Afficher l'image pivotée
-                    gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), app->original_pixbuf);
-                    
-                    g_print("Image pivotée automatiquement chargée et affichée\n");
-
-                    // Sauvegarder l'image pivotée avec le nom du fichier d'entrée
-                    gchar *saved_rotated_input = g_strdup_printf("../image_modifier/tests_images/%s", app->input_filename);
-                    GError *save_err = NULL;
-                    if (gdk_pixbuf_save(app->original_pixbuf, saved_rotated_input, "png", &save_err, NULL)) {
-                        g_print("Image pivotée sauvegardée: %s\n", saved_rotated_input);
-                        // Lancer preprocess sur l'image pivotée pour produire le N&B
-                        gchar *pre_cmd = g_strdup_printf("cd ../image_modifier && ./preprocess %s", app->input_filename);
-                        g_print("Exécution de: %s\n", pre_cmd);
-                        int pre_res = system(pre_cmd);
-                        g_free(pre_cmd);
-                        if (pre_res == 0) {
-                            g_print("Conversion Noir & Blanc (post-rotation) terminée avec succès\n");
-                            // Appeler get_letters sur la sortie N&B
-                            gchar *bw_filename = g_strdup_printf("%s_bw.bmp", app->input_filename);
-                            gchar *letters_cmd = g_strdup_printf("cd ../image_modifier && ./get_letters %s", bw_filename);
-                            g_print("Exécution de: %s\n", letters_cmd);
-                            int letters_res = system(letters_cmd);
-                            g_free(letters_cmd);
-                            g_free(bw_filename);
-                            if (letters_res == 0) {
-                                g_print("Détection des lettres terminée avec succès\n");
-                            } else {
-                                g_printerr("Erreur lors de l'exécution de get_letters (code: %d)\n", letters_res);
-                            }
-                        } else {
-                            g_printerr("Erreur lors de l'exécution de preprocess (post-rotation) (code: %d)\n", pre_res);
-                        }
-                    } else {
-                        g_printerr("Erreur lors de la sauvegarde de l'image pivotée: %s\n", save_err ? save_err->message : "inconnue");
-                        if (save_err) g_error_free(save_err);
-                    }
-                    g_free(saved_rotated_input);
-                } else {
-                    g_printerr("Erreur lors du chargement de l'image pivotée: %s\n", 
-                               error ? error->message : "fichier introuvable");
-                    if (error) g_error_free(error);
-                }
-            } else {
-                g_printerr("Erreur lors de l'exécution de la rotation automatique (code: %d)\n", result);
-            }
-        } else {
-            g_printerr("Erreur lors de la sauvegarde temporaire: %s\n", error->message);
-            g_error_free(error);
-        }
+    if (!current_pixbuf) {
+        g_printerr("Erreur: impossible de récupérer l'image actuelle\n");
+        g_free(preprocess_input);
+        g_free(temp_filename);
+        return;
     }
+    
+    // Sauvegarder l'image actuelle en PNG pour preprocess
+    if (!gdk_pixbuf_save(current_pixbuf, preprocess_input, "png", &error, NULL)) {
+        g_printerr("Erreur lors de la sauvegarde pour preprocess: %s\n", error->message);
+        g_error_free(error);
+        g_free(preprocess_input);
+        g_free(temp_filename);
+        return;
+    }
+    g_print("Image sauvegardée pour preprocess: %s\n", preprocess_input);
+    g_free(preprocess_input);
+
+    // Appeler l'exécutable preprocess avec le nom temporaire
+    gchar *command = g_strdup_printf("cd ../image_modifier/ && ./preprocess %s", temp_filename);
+    g_print("Exécution de: %s\n", command);
+    int result = system(command);
+    g_free(command);
+
+    if (result != 0) {
+        g_printerr("Erreur lors de l'exécution de preprocess (code: %d)\n", result);
+        g_free(temp_filename);
+        return;
+    }
+    g_print("Conversion Noir & Blanc terminée avec succès\n");
+
+    // Charger l'image N&B générée par preprocess
+    gchar *bw_filename = g_strdup_printf("../image_modifier/black_and_white/%s_bw.bmp", temp_filename);
+    GdkPixbuf *bw_pixbuf = gdk_pixbuf_new_from_file(bw_filename, &error);
+    
+    if (!bw_pixbuf) {
+        g_printerr("Erreur lors du chargement de l'image Noir & Blanc: %s\n", 
+                   error ? error->message : "fichier introuvable");
+        if (error) g_error_free(error);
+        g_free(bw_filename);
+        g_free(temp_filename);
+        return;
+    }
+    g_print("Image Noir & Blanc chargée: %s\n", bw_filename);
+    g_free(bw_filename);
+    
+    // ===== ÉTAPE 2: Rotation automatique =====
+    g_print("=== Étape 2: Rotation automatique ===\n");
+    
+    // Sauvegarder l'image N&B temporairement pour la rotation
+    const char *temp_input = "automatic_rotation/temp_input.bmp";
+    if (!gdk_pixbuf_save(bw_pixbuf, temp_input, "bmp", &error, NULL)) {
+        g_printerr("Erreur lors de la sauvegarde temporaire: %s\n", error->message);
+        g_error_free(error);
+        g_object_unref(bw_pixbuf);
+        return;
+    }
+    g_print("Image N&B sauvegardée pour rotation automatique: %s\n", temp_input);
+    g_object_unref(bw_pixbuf);
+    
+    // Appeler le programme de rotation automatique
+    command = g_strdup_printf("cd automatic_rotation && ./rotate_bmp_im temp_input.bmp");
+    g_print("Exécution de: %s\n", command);
+    result = system(command);
+    g_free(command);
+    
+    if (result != 0) {
+        g_printerr("Erreur lors de l'exécution de la rotation automatique (code: %d)\n", result);
+        return;
+    }
+    g_print("Rotation automatique terminée avec succès\n");
+    
+    // Charger l'image pivotée
+    const char *rotated_filename = "automatic_rotation/final_rotated.bmp";
+    GdkPixbuf *rotated_pixbuf = gdk_pixbuf_new_from_file(rotated_filename, &error);
+    
+    if (!rotated_pixbuf) {
+        g_printerr("Erreur lors du chargement de l'image pivotée: %s\n", 
+                   error ? error->message : "fichier introuvable");
+        if (error) g_error_free(error);
+        return;
+    }
+    
+    // Libérer l'ancien pixbuf original
+    if (app->original_pixbuf) {
+        g_object_unref(app->original_pixbuf);
+    }
+    
+    // Remplacer l'image originale par l'image pivotée
+    app->original_pixbuf = rotated_pixbuf;
+    
+    // Réinitialiser l'angle de rotation manuelle
+    app->rotation_angle = 0.0;
+    
+    // Afficher l'image pivotée
+    gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), app->original_pixbuf);
+    
+    g_print("Image traitée (N&B + rotation) chargée et affichée\n");
+
+    // ===== ÉTAPE 3: Détection des lettres =====
+    g_print("=== Étape 3: Détection des lettres ===\n");
+    
+    // Sauvegarder l'image finale pivotée en BMP avec le nom original_bw.bmp
+    gchar *final_bw_output = g_strdup_printf("../image_modifier/black_and_white/%s_bw.bmp", app->input_filename);
+    if (gdk_pixbuf_save(app->original_pixbuf, final_bw_output, "bmp", &error, NULL)) {
+        g_print("Image finale pivotée sauvegardée: %s\n", final_bw_output);
+        
+        // Appeler get_letters sur l'image finale avec le nom original
+        gchar *letters_input = g_strdup_printf("%s_bw.bmp", app->input_filename);
+        gchar *letters_cmd = g_strdup_printf("cd ../image_modifier && ./get_letters %s", letters_input);
+        g_print("Exécution de: %s\n", letters_cmd);
+        int letters_res = system(letters_cmd);
+        g_free(letters_cmd);
+        g_free(letters_input);
+        
+        if (letters_res == 0) {
+            g_print("Détection des lettres terminée avec succès\n");
+            g_print("=== Traitement complet terminé ===\n");
+        } else {
+            g_printerr("Erreur lors de l'exécution de get_letters (code: %d)\n", letters_res);
+        }
+    } else {
+        g_printerr("Erreur lors de la sauvegarde de l'image finale: %s\n", error ? error->message : "inconnue");
+        if (error) g_error_free(error);
+    }
+    g_free(final_bw_output);
+    g_free(temp_filename);
 }
 
 // Gestionnaire pour le bouton d'importation d'image
@@ -315,82 +363,6 @@ void on_download_button_clicked(GtkButton *button, gpointer user_data) {
 
 
 
-// Gestionnaire pour le bouton Noir & Blanc via executable preprocess
-void on_convert_button_clicked(GtkButton *button, gpointer user_data) {
-    AppData *app = (AppData *)user_data;
-    
-    // Vérifier qu'une image est chargée
-    if (!app->original_pixbuf) {
-        g_print("Aucune image à convertir\n");
-        return;
-    }
-    
-    // Vérifier qu'un fichier d'entrée a été chargé
-    if (strlen(app->input_filename) == 0) {
-        g_print("Aucun fichier d'entrée chargé\n");
-        return;
-    }
-    
-    // Construire le chemin du fichier d'entrée pour preprocess (dans image_modifier/tests_images)
-    gchar *preprocess_input = g_strdup_printf("../image_modifier/tests_images/%s", app->input_filename);
-    
-    // Récupérer le pixbuf actuel (avec rotation appliquée)
-    GdkPixbuf *current_pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(app->image));
-    
-    if (current_pixbuf) {
-        GError *error = NULL;
-        
-        // Sauvegarder l'image actuelle en PNG pour preprocess
-        if (gdk_pixbuf_save(current_pixbuf, preprocess_input, "png", &error, NULL)) {
-            g_print("Image sauvegardée pour preprocess: %s\n", preprocess_input);
-
-            // Appeler l'exécutable preprocess sur le fichier sauvegardé
-            gchar *command = g_strdup_printf("cd ../image_modifier/ && ./preprocess %s", app->input_filename);
-            g_print("Exécution de: %s\n", command);
-
-            int result = system(command);
-            g_free(command);
-
-            if (result == 0) {
-                g_print("Conversion Noir & Blanc terminée avec succès\n");
-
-                // Chemin de sortie généré par preprocess (avec le nom du fichier d'entrée)
-                gchar *processed_filename = g_strdup_printf("../image_modifier/black_and_white/%s_bw.bmp", app->input_filename);
-                GdkPixbuf *processed_pixbuf = gdk_pixbuf_new_from_file(processed_filename, &error);
-
-                if (processed_pixbuf) {
-                    // Libérer l'ancien pixbuf original
-                    if (app->original_pixbuf) {
-                        g_object_unref(app->original_pixbuf);
-                    }
-                    
-                    // Remplacer l'image originale par l'image traitée
-                    app->original_pixbuf = processed_pixbuf;
-                    
-                    // Réinitialiser l'angle de rotation
-                    app->rotation_angle = 0.0;
-                    
-                    // Afficher l'image traitée
-                    gtk_image_set_from_pixbuf(GTK_IMAGE(app->image), app->original_pixbuf);
-                    
-                    g_print("Image Noir & Blanc chargée et affichée\n");
-                } else {
-                    g_printerr("Erreur lors du chargement de l'image Noir & Blanc: %s\n", 
-                               error ? error->message : "fichier introuvable");
-                    if (error) g_error_free(error);
-                }
-                g_free(processed_filename);
-            } else {
-                g_printerr("Erreur lors de l'exécution de preprocess (code: %d)\n", result);
-            }
-        } else {
-            g_printerr("Erreur lors de la sauvegarde pour preprocess: %s\n", error->message);
-            g_error_free(error);
-        }
-        g_free(preprocess_input);
-    }
-}
-
 // Gestionnaire pour la fermeture de la fenêtre
 void on_window_destroy(GtkWidget *widget, gpointer user_data) {
     gtk_main_quit();
@@ -442,16 +414,8 @@ int main(int argc, char *argv[]) {
     }
     
     // Le spinbutton de rotation a été retiré de l'interface
-    
-    // Récupérer le bouton de conversion
-    GtkWidget *convert_button = GTK_WIDGET(gtk_builder_get_object(app.builder, "convert_button"));
-    
-    if (!convert_button) {
-        g_printerr("Impossible de trouver 'convert_button'\n");
-        return 1;
-    }
 
-    // Récupérer le bouton de rotation automatique
+    // Récupérer le bouton de traitement automatique (N&B + Rotation)
     GtkWidget *auto_rotate_button = GTK_WIDGET(gtk_builder_get_object(app.builder, "auto_rotate_button"));
     
     if (!auto_rotate_button) {
@@ -474,9 +438,7 @@ int main(int argc, char *argv[]) {
     // Connecter les signaux manuellement
     g_signal_connect(app.window, "destroy", G_CALLBACK(on_window_destroy), NULL);
     g_signal_connect(import_button, "clicked", G_CALLBACK(on_import_button_clicked), &app);
-    // Pas de connexion au spinbutton (supprimé)
     g_signal_connect(auto_rotate_button, "clicked", G_CALLBACK(on_auto_rotate_button_clicked), &app);
-    g_signal_connect(convert_button, "clicked", G_CALLBACK(on_convert_button_clicked), &app);
     g_signal_connect(download_button, "clicked", G_CALLBACK(on_download_button_clicked), &app);
     
     // Connecter les boutons du header aux mêmes fonctions
