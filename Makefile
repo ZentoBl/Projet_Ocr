@@ -1,4 +1,4 @@
-SUBDIRS = Reseau_Neuronal image_modifier interface Solver Letter_txt_creator
+SUBDIRS = Reseau_Neuronal image_modifier interface Solver Letter_txt_creator final_result
 
 .PHONY: all clean run $(SUBDIRS)
 
