@@ -1,7 +1,7 @@
 CFLAGS = -Wall -Wextra -g
 LDFLAGS = -lm -lSDL2 -lSDL2_image
 
-SRC = main.c letter_parser.c
+SRC = grid_annotator.c letter_parser.c
 OBJ=$(SRC:.c=.o)
 
 all: ocr_draw

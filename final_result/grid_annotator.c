@@ -8,8 +8,8 @@
 
 #define TOLERANCE 20 // (between 2 and 30 for good detection)
 
-#define BORDER 5
-#define ALPHA_BORDER 100
+#define BORDER 3
+#define ALPHA_BORDER 128
 #define ALPHA_FILL 90
 #define POWER 0.6 // (0 for [], 0.4 for (), 0.5 for O, 1 for <>, 2 for {}, 4 for -[]-)
 
@@ -149,7 +149,7 @@ static void aa_arc(SDL_Surface *img, float cx, float cy, float radius,
 void draw_wordsearch_box(SDL_Surface *img, int x1, int y1, int x2, int y2, 
     int width, Uint8 r, Uint8 g, Uint8 b)
 {
-    width =width / 2 + BORDER + 1;
+    width = (width + BORDER) / 2 + 4;
     int bx1 = x1, by1 = y1, bx2 = x2, by2 = y2;
     float dx = x2 - x1;
     float dy = y2 - y1;
