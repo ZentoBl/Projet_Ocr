@@ -117,14 +117,16 @@ size_t mode_size_t(size_t *arr, size_t n)
     return max_value;
 }
 
-void save_boxes(SDL_Surface *img, Box *boxes, size_t nb, const char *name_file)
+void save_boxes(SDL_Surface*img, Box*boxes, size_t nb, const char*name_file)
 {
     for (size_t i = 0; i < nb; i++)
     {
         SDL_Rect r = {boxes[i].x, boxes[i].y, boxes[i].w, boxes[i].h};
-        SDL_Surface *sub = SDL_CreateRGBSurface(0, r.w, r.h, img->format->BitsPerPixel, img->format->Rmask, img->format->Gmask, img->format->Bmask, img->format->Amask);
+        SDL_Surface *sub = SDL_CreateRGBSurface(0, r.w, r.h,
+            img->format->BitsPerPixel, img->format->Rmask, img->format->Gmask,
+            img->format->Bmask, img->format->Amask);
         if (!sub)
-            err(EXIT_FAILURE, "SDL_CreateRGBSurface failed : %s", SDL_GetError());
+            err(EXIT_FAILURE, "SDL_CreateRGBSurface: %s", SDL_GetError());
         if (SDL_BlitSurface(img, &r, sub, NULL))
             err(EXIT_FAILURE, "SDL_BlitSurface failed");
         char file_name[128] = "";
@@ -141,14 +143,18 @@ void save_grid_letters(SDL_Surface *img, GridLetter *gl, size_t nb,
     for (size_t i = 0; i < nb; i++)
     {
         SDL_Rect r = {gl[i].box.x, gl[i].box.y, gl[i].box.w, gl[i].box.h};
-        SDL_Surface *sub = SDL_CreateRGBSurface(0, r.w, r.h, img->format->BitsPerPixel, img->format->Rmask, img->format->Gmask, img->format->Bmask, img->format->Amask);
+        SDL_Surface *sub = SDL_CreateRGBSurface(0, r.w, r.h,
+            img->format->BitsPerPixel, img->format->Rmask,
+            img->format->Gmask, img->format->Bmask, img->format->Amask);
         if (!sub)
-            err(EXIT_FAILURE, "SDL_CreateRGBSurface failed : %s", SDL_GetError());
+            err(EXIT_FAILURE, "SDL_CreateRGBSurface: %s", SDL_GetError());
         if (SDL_BlitSurface(img, &r, sub, NULL))
             err(EXIT_FAILURE, "SDL_BlitSurface failed");
         char file_name[128] = "";
-        sprintf(file_name,"images_grid_letters/grid_letter_%s_%li_%lix%li_(%ix%i_%ix%i).bmp",
-            name_file, i, gl[i].col, gl[i].row, gl[i].box.x, gl[i].box.y, gl[i].box.w, gl[i].box.h);
+        sprintf(file_name,
+        "images_grid_letters/grid_letter_%s_%li_%lix%li_(%ix%i_%ix%i).bmp",
+        name_file, i, gl[i].col, gl[i].row, gl[i].box.x, gl[i].box.y,
+        gl[i].box.w, gl[i].box.h);
         save_img_bmp(sub, file_name);
         SDL_FreeSurface(sub);
     }
@@ -160,14 +166,18 @@ void save_word_letters(SDL_Surface *img, WordLetter *wl, size_t nb,
     for (size_t i = 0; i < nb; i++)
     {
         SDL_Rect r = {wl[i].box.x, wl[i].box.y, wl[i].box.w, wl[i].box.h};
-        SDL_Surface *sub = SDL_CreateRGBSurface(0, r.w, r.h, img->format->BitsPerPixel, img->format->Rmask, img->format->Gmask, img->format->Bmask, img->format->Amask);
+        SDL_Surface *sub = SDL_CreateRGBSurface(0, r.w, r.h,
+            img->format->BitsPerPixel, img->format->Rmask,
+            img->format->Gmask, img->format->Bmask, img->format->Amask);
         if (!sub)
-            err(EXIT_FAILURE, "SDL_CreateRGBSurface failed : %s", SDL_GetError());
+            err(EXIT_FAILURE, "SDL_CreateRGBSurface: %s", SDL_GetError());
         if (SDL_BlitSurface(img, &r, sub, NULL))
             err(EXIT_FAILURE, "SDL_BlitSurface failed");
         char file_name[128] = "";
-        sprintf(file_name,"images_word_letters/word_letter_%s_%li_%lix%li_(%ix%i_%ix%i).bmp",
-            name_file, i, wl[i].letter_idx, wl[i].word_id, wl[i].box.x, wl[i].box.y, wl[i].box.w, wl[i].box.h);
+        sprintf(file_name,
+        "images_word_letters/word_letter_%s_%li_%lix%li_(%ix%i_%ix%i).bmp",
+        name_file, i, wl[i].letter_idx, wl[i].word_id, wl[i].box.x, wl[i].box.y,
+        wl[i].box.w, wl[i].box.h);
         save_img_bmp(sub, file_name);
         SDL_FreeSurface(sub);
     }
@@ -177,10 +187,13 @@ void save_with_marks(SDL_Surface *img, Box *boxes, size_t *indices,
     size_t nx, size_t ny, const char *name_file, const char *context)
 {
     char file_name[128] = "";
-    sprintf(file_name, "debug/%s_%s.bmp", name_file ? name_file : "solver", context ? context : "test");
-    SDL_Surface *sub = SDL_CreateRGBSurface(0, img->w, img->h, img->format->BitsPerPixel, img->format->Rmask, img->format->Gmask, img->format->Bmask, img->format->Amask);
+    sprintf(file_name, "debug/%s_%s.bmp",
+        name_file ? name_file : "solver", context ? context : "test");
+    SDL_Surface *sub = SDL_CreateRGBSurface(0, img->w, img->h,
+        img->format->BitsPerPixel, img->format->Rmask,
+        img->format->Gmask, img->format->Bmask, img->format->Amask);
     if (!sub)
-        err(EXIT_FAILURE, "SDL_CreateRGBSurface failed : %s", SDL_GetError());
+        err(EXIT_FAILURE, "SDL_CreateRGBSurface: %s", SDL_GetError());
     if (SDL_BlitSurface(img, &img->clip_rect, sub, NULL))
         err(EXIT_FAILURE, "SDL_BlitSurface failed");
     SDL_Renderer *renderer = SDL_CreateSoftwareRenderer(sub);
@@ -198,10 +211,12 @@ void save_with_marks(SDL_Surface *img, Box *boxes, size_t *indices,
             err(EXIT_FAILURE, "SDL_RenderDrawRect failed");
         for (int delta = 0; delta < 1; delta++)
         {
-            Uint8 *p = sub->pixels + r.y * sub->pitch + r.x * sub->format->BytesPerPixel;
+            Uint8*p=sub->pixels+r.y*sub->pitch+r.x*sub->format->BytesPerPixel;
             if (r.y-(1+delta) >= 0) // top
             {
-                for (int k=-(1+delta)*sub->pitch; k<-(1+delta)*sub->pitch+r.w*sub->format->BytesPerPixel; k+=sub->format->BytesPerPixel)
+                for (int k=-(1+delta)*sub->pitch;
+                    k<-(1+delta)*sub->pitch+r.w*sub->format->BytesPerPixel;
+                    k+=sub->format->BytesPerPixel)
                 {
                     p[k  ] = color[3*(i/nx)];
                     p[k+1] = color[3*(i/nx)+1];
@@ -210,7 +225,9 @@ void save_with_marks(SDL_Surface *img, Box *boxes, size_t *indices,
             }
             if (r.y+r.h+delta < sub->h) // bottom
             {
-                for (int k=(r.h+delta)*sub->pitch; k<(r.h+delta)*sub->pitch+r.w*sub->format->BytesPerPixel; k+=sub->format->BytesPerPixel)
+                for (int k=(r.h+delta)*sub->pitch;
+                    k<(r.h+delta)*sub->pitch+r.w*sub->format->BytesPerPixel;
+                    k+=sub->format->BytesPerPixel)
                 {
                     p[k  ] = color[3*(i/nx)];
                     p[k+1] = color[3*(i/nx)+1];
@@ -219,7 +236,9 @@ void save_with_marks(SDL_Surface *img, Box *boxes, size_t *indices,
             }
             if (r.x-(1+delta) >= 0) // left
             {
-                for (int k=-(1+delta)*sub->format->BytesPerPixel; k<r.h*sub->pitch-(1+delta)*sub->format->BytesPerPixel; k+=sub->pitch)
+                for (int k=-(1+delta)*sub->format->BytesPerPixel;
+                    k<r.h*sub->pitch-(1+delta)*sub->format->BytesPerPixel;
+                    k+=sub->pitch)
                 {
                     p[k  ] = color[3*(i%nx)];
                     p[k+1] = color[3*(i%nx)+1];
@@ -228,7 +247,9 @@ void save_with_marks(SDL_Surface *img, Box *boxes, size_t *indices,
             }
             if (r.x+r.w+delta < sub->w) // right
             {
-                for (int k=(r.w+delta)*sub->format->BytesPerPixel; k<r.h*sub->pitch+(r.w+delta)*sub->format->BytesPerPixel; k+=sub->pitch)
+                for (int k=(r.w+delta)*sub->format->BytesPerPixel;
+                    k<r.h*sub->pitch+(r.w+delta)*sub->format->BytesPerPixel;
+                    k+=sub->pitch)
                 {
                     p[k  ] = color[3*(i%nx)];
                     p[k+1] = color[3*(i%nx)+1];
@@ -260,7 +281,7 @@ size_t detect_connected_components(SDL_Surface *img, Box *boxes,
         {
             if ((*out_segments)[y * img->w + x])
                 continue;
-            Uint8 *p = img->pixels + y * img->pitch + x * img->format->BytesPerPixel;
+            Uint8 *p = img->pixels+y*img->pitch+x*img->format->BytesPerPixel;
             if (*p == 0) // black
             {
                 int x_min = x, x_max = x, y_min = y, y_max = y;
@@ -285,7 +306,8 @@ size_t detect_connected_components(SDL_Surface *img, Box *boxes,
                             continue;
                         if ((*out_segments)[ny * img->w + nx])
                             continue;
-                        Uint8 *p = img->pixels + ny * img->pitch + nx * img->format->BytesPerPixel;
+                        Uint8 *p = img->pixels + ny * img->pitch
+                            + nx *img->format->BytesPerPixel;
                         if (*p == 0) // black
                         {
                             (*out_segments)[ny * img->w +nx] = 1;
@@ -296,7 +318,8 @@ size_t detect_connected_components(SDL_Surface *img, Box *boxes,
                 }
                 size_t bw = x_max - x_min + 1;
                 size_t bh = y_max - y_min + 1;
-                if (bw >= 2 && bh >= 8 && bw * 5 < (size_t)img->w && bh * 5 < (size_t)img->h)
+                if (bw >= 2 && bh >= 8 && bw * 5 < (size_t)img->w
+                    && bh * 5 < (size_t)img->h)
                 {
                     if (MAX_BOXES <= count)
                         errx(EXIT_FAILURE, "boxe full");
@@ -318,7 +341,8 @@ size_t detect_connected_components(SDL_Surface *img, Box *boxes,
     size_t *identity = malloc(count * sizeof(size_t));
     for(size_t i = 0; i < count; i++)
         identity[i] = i;
-    save_with_marks(img, boxes, identity, count, 1, name_file, "connected_components");
+    save_with_marks(img, boxes, identity, count, 1,
+        name_file, "connected_components");
     free(identity);
     return count;
 }
@@ -447,13 +471,15 @@ size_t group_letters_into_grid(Box *boxes, size_t n,
         size_t *hist_x = calloc(max_x + 1, sizeof(size_t));
         for (size_t i = 0; i < n; i++)
             hist_x[boxes[i].cx]++;
-        nb_indices_x = get_grid_size(hist_x, max_x, TOLERANCE_X*3, &nb_row, &col_count_x, indices_x);
+        nb_indices_x = get_grid_size(hist_x, max_x, TOLERANCE_X*3,
+            &nb_row, &col_count_x, indices_x);
         free(hist_x);
         size_t *gap_y_i = malloc(nb_row * sizeof(size_t));
         size_t *all_gap_y = malloc(col_count_x * sizeof(size_t));
         for (size_t x = 0; x < col_count_x; x++)
         {
-            // sort the range boxes[indices_x[x*col_count_x : (x+1)*col_count_x]] by increasing y
+            // sort the range boxes[indices_x[x*col_count_x :
+            // (x+1)*col_count_x]] by increasing y
             for (size_t i = 0; i < nb_row; i++)
             {
                 int by = boxes[indices_x[x*nb_row+i]].y;
@@ -486,7 +512,8 @@ size_t group_letters_into_grid(Box *boxes, size_t n,
 
         printf("gap_y=%li\n", gap_y);
         printf("grid_x = %lix%li\n", col_count_x, nb_row);
-        save_with_marks(img, boxes, indices_x, col_count_x, nb_row, name_file, "grid_x");
+        save_with_marks(img, boxes, indices_x, col_count_x, nb_row,
+            name_file, "grid_x");
     }
     //////////////////////////////////////////////////////////
     {
@@ -498,13 +525,15 @@ size_t group_letters_into_grid(Box *boxes, size_t n,
         size_t *hist_y = calloc(max_y + 1, sizeof(size_t));
         for (size_t i = 0; i < n; i++)
             hist_y[boxes[i].cy]++;
-        nb_indices_y = get_grid_size(hist_y, max_y, TOLERANCE_Y*3, &nb_col, &row_count_y, indices_y);
+        nb_indices_y = get_grid_size(hist_y, max_y, TOLERANCE_Y*3,
+            &nb_col, &row_count_y, indices_y);
         free(hist_y);
         size_t *gap_x_i = malloc(nb_col * sizeof(size_t));
         size_t *all_gap_x = malloc(row_count_y * sizeof(size_t));
         for (size_t y = 0; y < row_count_y; y++)
         {
-            // sort the range boxes[indices_y[y*row_count_y : (y+1)*row_count_y]] by increasing x
+            // sort the range boxes[indices_y[y*row_count_y :
+            // (y+1)*row_count_y]] by increasing x
             for (size_t i = 0; i < nb_col; i++)
             {
                 int bx = boxes[indices_y[y*nb_col+i]].x;
@@ -537,7 +566,8 @@ size_t group_letters_into_grid(Box *boxes, size_t n,
 
         printf("gap_x=%li\n", gap_x);
         printf("grid_y = %lix%li\n", nb_col, row_count_y);
-        save_with_marks(img, boxes, indices_y, nb_col, row_count_y, name_file, "grid_y");
+        save_with_marks(img, boxes, indices_y, nb_col, row_count_y,
+            name_file, "grid_y");
     }
     if (nb_indices_x > nb_indices_y)
     {
@@ -547,8 +577,10 @@ size_t group_letters_into_grid(Box *boxes, size_t n,
         for (size_t i = 0; i < nb_indices_x; i++)
         {
             if (i >= MAX_BOXES)
-                errx(EXIT_FAILURE, "group_letters_into_grid max_letters = %i", MAX_BOXES);
-            out_letters[i] = (GridLetter){boxes[indices_x[i]], i % col_count_x, i / col_count_x};
+                errx(EXIT_FAILURE,
+                "group_letters_into_grid max_letters = %i", MAX_BOXES);
+            out_letters[i] = (GridLetter){boxes[indices_x[i]],
+                i % col_count_x, i / col_count_x};
         }
         free(indices_x);
         free(indices_y);
@@ -561,8 +593,10 @@ size_t group_letters_into_grid(Box *boxes, size_t n,
         for (size_t i = 0; i < nb_indices_y; i++)
         {
             if (i >= MAX_BOXES)
-                errx(EXIT_FAILURE, "group_letters_into_grid max_letters = %i", MAX_BOXES);
-            out_letters[i] = (GridLetter){boxes[indices_y[i]], i / nb_col, i % nb_col};
+                errx(EXIT_FAILURE,
+                "group_letters_into_grid max_letters = %i", MAX_BOXES);
+            out_letters[i] = (GridLetter){boxes[indices_y[i]],
+                i / nb_col, i % nb_col};
         }
         free(indices_x);
         free(indices_y);
@@ -627,7 +661,8 @@ size_t group_letters_into_words(Box *boxes, size_t n,
         int last = boxes[indices[start]].x;
         for (size_t i = start; i < end; i++)
         {
-            if (boxes[indices[i]].x - last >= boxes[indices[i]].w + 2 * TOLERANCE_X)
+            if (boxes[indices[i]].x - last
+                >= boxes[indices[i]].w + 2 * TOLERANCE_X)
             {
                 start = i;
                 num_words++;
@@ -640,7 +675,8 @@ size_t group_letters_into_words(Box *boxes, size_t n,
         num_words++;
     }
     // Letters
-    save_with_marks(img, boxes, indices, n, 1, name_file, "letters_individual");
+    save_with_marks(img, boxes, indices, n, 1,
+        name_file, "letters_individual");
     { // Words
         size_t word_id = -1;
         Box *words = malloc(num_words * sizeof(Box));
@@ -649,10 +685,14 @@ size_t group_letters_into_words(Box *boxes, size_t n,
         {
             if(out_letters[i].word_id == word_id)
             {
-                words[word_id].x = (int)fmin(words[word_id].x, out_letters[i].box.x);
-                words[word_id].y = (int)fmin(words[word_id].y, out_letters[i].box.y);
-                words[word_id].w = (int)fmax(words[word_id].x + words[word_id].w, out_letters[i].box.x+out_letters[i].box.w) - words[word_id].x;
-                words[word_id].h = (int)fmax(words[word_id].y + words[word_id].h, out_letters[i].box.y+out_letters[i].box.h) - words[word_id].y;
+                words[word_id].x = (int)fmin(words[word_id].x,
+                    out_letters[i].box.x);
+                words[word_id].y = (int)fmin(words[word_id].y,
+                    out_letters[i].box.y);
+                words[word_id].w=(int)fmax(words[word_id].x+words[word_id].w,
+                out_letters[i].box.x+out_letters[i].box.w)-words[word_id].x;
+                words[word_id].h=(int)fmax(words[word_id].y+words[word_id].h,
+                out_letters[i].box.y+out_letters[i].box.h)-words[word_id].y;
             }
             else
             {
@@ -665,7 +705,8 @@ size_t group_letters_into_words(Box *boxes, size_t n,
         }
         for(size_t i = 0; i < num_words; i++)
             identity[i] = i;
-        save_with_marks(img, words, identity, num_words, 1, name_file, "words_group");
+        save_with_marks(img, words, identity, num_words, 1,
+            name_file, "words_group");
         free(words);
         free(identity);
     }
@@ -677,7 +718,7 @@ size_t group_letters_into_words(Box *boxes, size_t n,
 }
 
 size_t remove_small_words(WordLetter *wl, size_t count, size_t *word_count,
-                          SDL_Surface *img, const char *name_file)
+    SDL_Surface *img, const char *name_file)
 {
     if (count == 0) return 0;
     size_t orig_words = *word_count;
@@ -719,9 +760,9 @@ size_t remove_small_words(WordLetter *wl, size_t count, size_t *word_count,
             continue;
         double total_gap = 0;
         for (size_t i = start + 1; i < end-1; i++)
-            total_gap += fmax(1.0, wl[i+1].box.x - (wl[i].box.x + wl[i].box.w));
+            total_gap += fmax(1.0, wl[i+1].box.x - (wl[i].box.x+wl[i].box.w));
         double avg_gap = total_gap / (count_letters - 2);
-        double first_gap = wl[start+1].box.x - (wl[start].box.x + wl[start].box.w);
+        double first_gap=wl[start+1].box.x-(wl[start].box.x+wl[start].box.w);
         if (first_gap > avg_gap + TOLERANCE_X)
         {
             for (size_t i = start; i < out-1; i++)
@@ -746,7 +787,8 @@ size_t remove_small_words(WordLetter *wl, size_t count, size_t *word_count,
             letter_boxes[i] = wl[i].box;
             identity[i] = i;
         }
-        save_with_marks(img, letter_boxes, identity, out, 1, name_file, "z_letters_individual");
+        save_with_marks(img, letter_boxes, identity, out, 1,
+            name_file, "z_letters_individual");
         free(letter_boxes);
         free(identity);
     }
@@ -763,12 +805,15 @@ size_t remove_small_words(WordLetter *wl, size_t count, size_t *word_count,
             {
                 words[w].x = (int)fmin(words[w].x, wl[i].box.x);
                 words[w].y = (int)fmin(words[w].y, wl[i].box.y);
-                words[w].w = (int)fmax(words[w].x + words[w].w, wl[i].box.x + wl[i].box.w) - words[w].x;
-                words[w].h = (int)fmax(words[w].y + words[w].h, wl[i].box.y + wl[i].box.h) - words[w].y;
+                words[w].w = (int)fmax(words[w].x + words[w].w,
+                    wl[i].box.x + wl[i].box.w) - words[w].x;
+                words[w].h = (int)fmax(words[w].y + words[w].h,
+                    wl[i].box.y + wl[i].box.h) - words[w].y;
             }
             identity[w] = w;
         }
-        save_with_marks(img, words, identity, next_id, 1, name_file, "z_words_grouped");
+        save_with_marks(img, words, identity, next_id, 1,
+            name_file, "z_words_grouped");
         free(words);
         free(identity);
     }
@@ -777,7 +822,7 @@ size_t remove_small_words(WordLetter *wl, size_t count, size_t *word_count,
     return out;
 }
 
-size_t difference_update(Box *boxes, size_t nb, const GridLetter *gl, size_t ngl)
+size_t difference_update(Box*boxes,size_t nb,const GridLetter*gl,size_t ngl)
 {
     size_t new_i = 0;
     for (size_t i = 0; i < nb; ++i)
@@ -877,7 +922,7 @@ WordsDirection detect_words_side(Box a, Box b)
     return side;
 }
 
-size_t filter_by_direction(Box *boxes, size_t n, Box grid, WordsDirection side)
+size_t filter_by_direction(Box*boxes,size_t n,Box grid,WordsDirection side)
 {
     size_t out = 0;
     for (size_t i = 0; i < n; i++)
@@ -909,7 +954,8 @@ size_t filter_by_height(Box *boxes, size_t n)
     int medianheight = median_int(heights, n);
     free(heights);
     for (size_t i = 0; i < n; i++)
-        if (boxes[i].h > medianheight - TOLERANCE_Y && boxes[i].h < medianheight + 2*TOLERANCE_Y)
+        if (boxes[i].h > medianheight - TOLERANCE_Y
+                && boxes[i].h < medianheight + 2*TOLERANCE_Y)
             boxes[out++] = boxes[i];
     return out;
 }
@@ -917,8 +963,8 @@ size_t filter_by_height(Box *boxes, size_t n)
 int main(int argc, char **argv)
 {
     if (argc > 2)
-        errx(EXIT_FAILURE, "argc=%i, used $ %s <input> <output>", argc, argv[0]);
-    const char *name_file = (argc == 2) ? argv[1] : "level_1_image_1.png_bw.bmp";
+        errx(EXIT_FAILURE,"argc=%i, used $ %s <input> <output>",argc,argv[0]);
+    const char *name_file = (argc==2)?argv[1]:"level_1_image_1.png_bw.bmp";
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         err(EXIT_FAILURE, "SDL_Init failed");
@@ -937,8 +983,9 @@ int main(int argc, char **argv)
 
     GridLetter *gl = malloc(sizeof(GridLetter) * MAX_BOXES);
     size_t rows, cols;
-    size_t ngl = group_letters_into_grid(boxes, nb, gl, &rows, &cols, img, name_file);
-    printf("Grid detected: %li letters, rows=%li cols=%li\n", ngl, rows, cols);
+    size_t ngl = group_letters_into_grid(boxes, nb, gl,
+        &rows, &cols, img, name_file);
+    printf("Grid detected: %li letters rows=%li cols=%li\n", ngl, rows, cols);
     save_grid_letters(img, gl, ngl, name_file);
     nb = difference_update(boxes, nb, gl, ngl);
     printf("lenboxes-lengrid = %li\n", nb);
@@ -946,17 +993,18 @@ int main(int argc, char **argv)
     Box grid_bb = compute_grid_bbox(gl, ngl);
     printf("box grid: %ix%i\n", grid_bb.cx, grid_bb.cy);
     Box words_center = compute_words_barycenter(boxes, nb);
-    printf("barycenter exept grid : %ix%i\n", words_center.cx, words_center.cy);
+    printf("barycenter: %ix%i\n", words_center.cx, words_center.cy);
     WordsDirection side = detect_words_side(words_center, grid_bb);
     nb = filter_by_direction(boxes, nb, grid_bb, side);
-    printf("filtered by WordsDirection (%i) letters : %li\n", side,  nb);
+    printf("filtered by WordsDirection (%i) letters : %li\n", side, nb);
 
     nb = filter_by_height(boxes, nb);
     printf("filtered by height letters : %li\n", nb);
 
     WordLetter *wl = malloc(sizeof(WordLetter) * MAX_BOXES);
     size_t words_count;
-    size_t nwl = group_letters_into_words(boxes, nb, wl, &words_count, img, name_file);
+    size_t nwl = group_letters_into_words(boxes, nb, wl,
+        &words_count, img, name_file);
     printf("Detected %li letters in %li words \n", nwl, words_count);
     //save_word_letters(img, wl, nwl, name_file);
     nwl = remove_small_words(wl, nwl, &words_count, img, name_file);

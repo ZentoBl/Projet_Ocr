@@ -56,14 +56,14 @@ void denoise_average(SDL_Surface *img, int dist)
             for (int dx = x1; dx <= x2; dx++)
                 for (int dy = y1; dy <= y2; dy++)
                 {
-                    r += copy[dy * img->pitch + dx * img->format->BytesPerPixel];
-                    g += copy[dy * img->pitch + dx * img->format->BytesPerPixel + 1];
-                    b += copy[dy * img->pitch + dx * img->format->BytesPerPixel + 2];
+                    r += copy[dy*img->pitch+dx*img->format->BytesPerPixel];
+                    g += copy[dy*img->pitch+dx*img->format->BytesPerPixel+1];
+                    b += copy[dy*img->pitch+dx*img->format->BytesPerPixel+2];
                     k++;
                 }
-            pixels[y * img->pitch + x * img->format->BytesPerPixel    ] = r / k;
-            pixels[y * img->pitch + x * img->format->BytesPerPixel + 1] = g / k;
-            pixels[y * img->pitch + x * img->format->BytesPerPixel + 2] = b / k;
+            pixels[y*img->pitch + x*img->format->BytesPerPixel  ] = r/k;
+            pixels[y*img->pitch + x*img->format->BytesPerPixel+1] = g/k;
+            pixels[y*img->pitch + x*img->format->BytesPerPixel+2] = b/k;
         }
     if (SDL_MUSTLOCK(img))
         SDL_UnlockSurface(img);
@@ -71,14 +71,15 @@ void denoise_average(SDL_Surface *img, int dist)
 }
 
 // dist = 1 for 3*3, 2 for 5*5, n for (2 * n + 1) ** 2
-// percent : near 0           for erosion : pixels near dark  pixel become dark
-// percent : near UCHAR_MAX   for dilation: pixels near light pixel become light
-// percent : UCHAR_MAX / 2    for median
+// percent : near 0         for erosion : pixels near dark  pixel become dark
+// percent : near UCHAR_MAX for dilation: pixels near light pixel become light
+// percent : UCHAR_MAX / 2  for median
 // In a ordered list, for index remainder != 0
 // priority < 0 : chosen previous l[k]
 // priority = 0 : chosen average  (l[k]+l[k+1])/2
 // priority > 0 : chosen next     l[k+1]
-void denoise_percent(SDL_Surface *img, int dist, unsigned char percent, char priority)
+void denoise_percent(SDL_Surface *img, int dist,
+    unsigned char percent, char priority)
 {
     if (!img)
         errx(EXIT_FAILURE, "SDL_Surface NULL\n");
@@ -101,9 +102,12 @@ void denoise_percent(SDL_Surface *img, int dist, unsigned char percent, char pri
             for (int dx = x1; dx <= x2; dx++)
                 for (int dy = y1; dy <= y2; dy++)
                 {
-                    l_r[k] = copy[dy * img->pitch + dx * img->format->BytesPerPixel];
-                    l_g[k] = copy[dy * img->pitch + dx * img->format->BytesPerPixel + 1];
-                    l_b[k++] = copy[dy * img->pitch + dx * img->format->BytesPerPixel + 2];
+                    l_r[k] = copy[dy*img->pitch+dx
+                        * img->format->BytesPerPixel];
+                    l_g[k] = copy[dy*img->pitch+dx
+                        * img->format->BytesPerPixel + 1];
+                    l_b[k++] = copy[dy*img->pitch+dx
+                        * img->format->BytesPerPixel + 2];
                 }
             qsort(l_r, k, sizeof(Uint8), cmp_Uint8);
             qsort(l_g, k, sizeof(Uint8), cmp_Uint8);
@@ -113,17 +117,20 @@ void denoise_percent(SDL_Surface *img, int dist, unsigned char percent, char pri
             {
                 if (priority == 0)
                 {
-                    pixels[y * img->pitch + x * img->format->BytesPerPixel    ] = (l_r[i] + l_r[i + 1]) / 2;
-                    pixels[y * img->pitch + x * img->format->BytesPerPixel + 1] = (l_g[i] + l_g[i + 1]) / 2;
-                    pixels[y * img->pitch + x * img->format->BytesPerPixel + 2] = (l_b[i] + l_b[i + 1]) / 2;
+                    pixels[y * img->pitch + x * img->format->BytesPerPixel]
+                        = (l_r[i] + l_r[i + 1]) / 2;
+                    pixels[y * img->pitch + x * img->format->BytesPerPixel+1]
+                        = (l_g[i] + l_g[i + 1]) / 2;
+                    pixels[y * img->pitch + x * img->format->BytesPerPixel+2]
+                        = (l_b[i] + l_b[i + 1]) / 2;
                     continue;
                 }
                 if (priority > 0)
                     i++;
             }
-            pixels[y * img->pitch + x * img->format->BytesPerPixel    ] = l_r[i];
-            pixels[y * img->pitch + x * img->format->BytesPerPixel + 1] = l_g[i];
-            pixels[y * img->pitch + x * img->format->BytesPerPixel + 2] = l_b[i];
+            pixels[y*img->pitch + x*img->format->BytesPerPixel    ] = l_r[i];
+            pixels[y*img->pitch + x*img->format->BytesPerPixel + 1] = l_g[i];
+            pixels[y*img->pitch + x*img->format->BytesPerPixel + 2] = l_b[i];
         }
     free(l_r);
     free(l_g);
@@ -142,8 +149,10 @@ void denoise_median(SDL_Surface *img, int dist, char priority)
     denoise_percent(img, dist, UCHAR_MAX / 2, priority);
 }
 // dist = 1 for 3*3, 2 for 5*5, n for (2 * n + 1) ** 2
-// percent near 0         for opening : erosion then dilation of light pixel -> without light pixels alone
-// percent near UCHAR_MAX for closing : dilation then erosion of light pixel -> without dark  pixels alone
+// percent near 0         for opening:
+//erosion then dilation of light pixel -> without light pixels alone
+// percent near UCHAR_MAX for closing:
+//dilation then erosion of light pixel -> without dark  pixels alone
 void denoise_morphology(SDL_Surface *img, int dist, unsigned char percent)
 {
     denoise_percent(img, dist, percent, percent - UCHAR_MAX / 2);
@@ -216,7 +225,8 @@ void to_binary(SDL_Surface *img)
     Uint8 new_color;
     for (size_t i = 0; i < count; i += BytesPerPixel)
     {
-        new_color = grayscaleRGB(pixels[i], pixels[i+1], pixels[i+2]) > threshold ? 255 : 0;
+        new_color = grayscaleRGB(pixels[i],pixels[i+1],pixels[i+2])>threshold
+            ? 255 : 0;
         pixels[i  ] = new_color;
         pixels[i+1] = new_color;
         pixels[i+2] = new_color;
@@ -225,7 +235,8 @@ void to_binary(SDL_Surface *img)
         SDL_UnlockSurface(img);
 }
 
-// Clear black pixels in binary image if they are in groups of less than min_size
+// Clear black pixels in binary image
+// if they are in groups of less than min_size
 void denoise_by_count(SDL_Surface *img, int min_size)
 {
     if (!img)
@@ -243,7 +254,7 @@ void denoise_by_count(SDL_Surface *img, int min_size)
         {
             if (visited[y * img->w + x])
                 continue;
-            Uint8 *p = pixels + y * img->pitch + x * img->format->BytesPerPixel;
+            Uint8 *p = pixels + y*img->pitch + x*img->format->BytesPerPixel;
             if (p[0] != 0) // white pixel
                 continue;
             // new component
@@ -259,7 +270,7 @@ void denoise_by_count(SDL_Surface *img, int min_size)
                     continue;
                 if (visited[cy * img->w + cx])
                     continue;
-                Uint8 *cp = pixels + cy * img->pitch + cx * img->format->BytesPerPixel;
+                Uint8 *cp=pixels+cy*img->pitch+cx*img->format->BytesPerPixel;
                 if (cp[0] != 0)
                     continue;
                 visited[cy * img->w + cx] = 1;
@@ -285,7 +296,8 @@ void denoise_by_count(SDL_Surface *img, int min_size)
                         continue;
                     if (visited[cy * img->w + cx] != 1)
                         continue;
-                    Uint8 *cp = pixels + cy * img->pitch + cx * img->format->BytesPerPixel;
+                    Uint8 *cp = pixels + cy * img->pitch
+                        + cx * img->format->BytesPerPixel;
                     if (cp[0] == 0)
                     {
                         cp[0] = 255;
@@ -321,7 +333,8 @@ void process(SDL_Surface *img)
 int main(int argc, char **argv)
 {
     if (argc > 2)
-        errx(EXIT_FAILURE, "argc = %i, used $ %s <inputfile> <outputfile>", argc, argv[0]);
+        errx(EXIT_FAILURE,
+            "argc = %i, used $ %s <inputfile> <outputfile>", argc, argv[0]);
     const char *name_file = (argc == 2) ? argv[1] : "level_1_image_1.png";
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)

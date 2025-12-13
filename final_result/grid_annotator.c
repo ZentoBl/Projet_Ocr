@@ -6,12 +6,13 @@
 #include <SDL2/SDL_image.h>
 #include <math.h>
 
-#define TOLERANCE 20 // (between 2 and 30 for good detection)
+#define TOLERANCE 20 // between 2 and 30 for good detection
 
 #define BORDER 3
 #define ALPHA_BORDER 128
 #define ALPHA_FILL 90
-#define POWER 0.6 // (0 for [], 0.4 for (), 0.5 for O, 1 for <>, 2 for {}, 4 for -[]-)
+// 0 for [], 0.4 for (), 0.5 for O, 1 for <>, 2 for {}, 4 for -[]-
+#define POWER 0.6
 
 #define COLOR_NOT_FOUND 32, 16, 16, 180 // r, g, b, a (Uint8 : 0 to 225)
 
@@ -30,7 +31,8 @@ static void pick_random_color(int index, Uint8 *r, Uint8 *g, Uint8 *b)
         *b ^= 0x77;
     }
 }
-static void put_pixel_alpha(SDL_Surface *img, int x, int y, Uint8 r, Uint8 g, Uint8 b, Uint8 a)
+static void put_pixel_alpha(SDL_Surface *img, int x, int y,
+    Uint8 r, Uint8 g, Uint8 b, Uint8 a)
 {
     if (x < 0 || y < 0 || x >= img->w || y >= img->h)
         return;
@@ -50,27 +52,36 @@ typedef struct {float cx, cy, t1x, t1y, t2x, t2y;} Corner;
 static void fill_quad(SDL_Surface *img, Corner *corners,
     float radius, Uint8 r, Uint8 g, Uint8 b)
 {
-    float minx = fminf(fminf(corners[0].cx,corners[1].cx), fminf(corners[2].cx,corners[3].cx));
-    float maxx = fmaxf(fmaxf(corners[0].cx,corners[1].cx), fmaxf(corners[2].cx,corners[3].cx));
-    float miny = fminf(fminf(corners[0].cy,corners[1].cy), fminf(corners[2].cy,corners[3].cy));
-    float maxy = fmaxf(fmaxf(corners[0].cy,corners[1].cy), fmaxf(corners[2].cy,corners[3].cy));
+    float minx = fminf(fminf(corners[0].cx,corners[1].cx),
+        fminf(corners[2].cx,corners[3].cx));
+    float maxx = fmaxf(fmaxf(corners[0].cx,corners[1].cx),
+        fmaxf(corners[2].cx,corners[3].cx));
+    float miny = fminf(fminf(corners[0].cy,corners[1].cy),
+        fminf(corners[2].cy,corners[3].cy));
+    float maxy = fmaxf(fmaxf(corners[0].cy,corners[1].cy),
+        fmaxf(corners[2].cy,corners[3].cy));
     float threshold = powf(radius, POWER);
     for (int y = (int)miny; y <= (int)maxy; y++)
     for (int x = (int)minx; x <= (int)maxx; x++)
     {
         float vx = x + 0.5f;
         float vy = y + 0.5f;
-        float d1 = (corners[1].cx-corners[0].cx)*(vy-corners[0].cy) - (corners[1].cy-corners[0].cy)*(vx-corners[0].cx);
-        float d2 = (corners[2].cx-corners[1].cx)*(vy-corners[1].cy) - (corners[2].cy-corners[1].cy)*(vx-corners[1].cx);
-        float d3 = (corners[3].cx-corners[2].cx)*(vy-corners[2].cy) - (corners[3].cy-corners[2].cy)*(vx-corners[2].cx);
-        float d4 = (corners[0].cx-corners[3].cx)*(vy-corners[3].cy) - (corners[0].cy-corners[3].cy)*(vx-corners[3].cx);
+        float d1 = (corners[1].cx-corners[0].cx)*(vy-corners[0].cy)
+        - (corners[1].cy-corners[0].cy)*(vx-corners[0].cx);
+        float d2 = (corners[2].cx-corners[1].cx)*(vy-corners[1].cy)
+        - (corners[2].cy-corners[1].cy)*(vx-corners[1].cx);
+        float d3 = (corners[3].cx-corners[2].cx)*(vy-corners[2].cy)
+        - (corners[3].cy-corners[2].cy)*(vx-corners[2].cx);
+        float d4 = (corners[0].cx-corners[3].cx)*(vy-corners[3].cy)
+        - (corners[0].cy-corners[3].cy)*(vx-corners[3].cx);
         char found = 0;
         for (size_t i = 0; i < 4; i++)
         {
             float dx = x - corners[i].cx;
             float dy = y - corners[i].cy;
-            int res = powf(fabsf(dx * -corners[i].t1x + dy * -corners[i].t1y), POWER)
-                    + powf(fabsf(dx * -corners[i].t2x + dy * -corners[i].t2y), POWER);
+            int res = 
+                powf(fabsf(dx*-corners[i].t1x + dy*-corners[i].t1y), POWER) +
+                powf(fabsf(dx*-corners[i].t2x + dy*-corners[i].t2y), POWER);
             if (res < threshold)
             {
                 found = 1;
@@ -139,14 +150,18 @@ static void aa_arc(SDL_Surface *img, float cx, float cy, float radius,
             int iy = (int)fy;
             float tx = fx - ix;
             float ty = fy - iy;
-            put_pixel_alpha(img, ix,  iy,   r,g,b,(Uint8)(ALPHA_BORDER*(1-tx)*(1-ty)));
-            put_pixel_alpha(img, ix+1,iy,   r,g,b,(Uint8)(ALPHA_BORDER*  tx  *(1-ty)));
-            put_pixel_alpha(img, ix,  iy+1, r,g,b,(Uint8)(ALPHA_BORDER*(1-tx)*  ty));
-            put_pixel_alpha(img, ix+1,iy+1, r,g,b,(Uint8)(ALPHA_BORDER*  tx  *  ty));
+            put_pixel_alpha(img, ix,  iy,
+                r,g,b,(Uint8)(ALPHA_BORDER *(1-tx)*(1-ty)));
+            put_pixel_alpha(img, ix+1,iy,
+                r,g,b,(Uint8)(ALPHA_BORDER *  tx  *(1-ty)));
+            put_pixel_alpha(img, ix,  iy+1,
+                r,g,b,(Uint8)(ALPHA_BORDER *(1-tx)*  ty));
+            put_pixel_alpha(img, ix+1,iy+1,
+                r,g,b,(Uint8)(ALPHA_BORDER *  tx  *  ty));
         }
     }
 }
-void draw_wordsearch_box(SDL_Surface *img, int x1, int y1, int x2, int y2, 
+void draw_wordsearch_box(SDL_Surface *img, int x1, int y1, int x2, int y2,
     int width, Uint8 r, Uint8 g, Uint8 b)
 {
     width = (width + BORDER) / 2 + 4;
@@ -159,10 +174,10 @@ void draw_wordsearch_box(SDL_Surface *img, int x1, int y1, int x2, int y2,
         x2 += width;
         if (dy < -TOLERANCE)
         {
-            bx1 -= width/2;
-            bx2 += width/2;
-            by1 += width/2;
-            by2 -= width/2;
+            bx1 -= width / 2;
+            bx2 += width / 2;
+            by1 += width / 2;
+            by2 -= width / 2;
         }
     }
     else if (dx < -TOLERANCE)
@@ -171,10 +186,10 @@ void draw_wordsearch_box(SDL_Surface *img, int x1, int y1, int x2, int y2,
         x2 -= width;
         if (dy > TOLERANCE)
         {
-            bx1 += width/2;
-            bx2 -= width/2;
-            by1 -= width/2;
-            by2 += width/2;
+            bx1 += width / 2;
+            bx2 -= width / 2;
+            by1 -= width / 2;
+            by2 += width / 2;
         }
     }
     if (dy > TOLERANCE)
@@ -193,8 +208,10 @@ void draw_wordsearch_box(SDL_Surface *img, int x1, int y1, int x2, int y2,
     dy /= L;
     float nx = -dy;
     float ny = dx;
-    thick_line(img, bx1 + nx*width, by1 + ny*width, bx2 + nx*width, by2 + ny*width, r,g,b,ALPHA_BORDER);
-    thick_line(img, bx2 - nx*width, by2 - ny*width, bx1 - nx*width, by1 - ny*width, r,g,b,ALPHA_BORDER);
+    thick_line(img, bx1 + nx*width, by1 + ny*width,
+        bx2 + nx*width, by2 + ny*width, r,g,b,ALPHA_BORDER);
+    thick_line(img, bx2 - nx*width, by2 - ny*width,
+        bx1 - nx*width, by1 - ny*width, r,g,b,ALPHA_BORDER);
     float Ax = x1 + nx * width;
     float Ay = y1 + ny * width;
     float Bx = x2 + nx * width;
@@ -209,8 +226,8 @@ void draw_wordsearch_box(SDL_Surface *img, int x1, int y1, int x2, int y2,
     fill_quad(img, corners, width, r, g, b);
     for (int i = 0; i < 4; i++)
     {
-        float cx = corners[i].cx + corners[i].t1x * width + corners[i].t2x * width;
-        float cy = corners[i].cy + corners[i].t1y * width + corners[i].t2y * width;
+        float cx = corners[i].cx+corners[i].t1x*width+corners[i].t2x*width;
+        float cy = corners[i].cy+corners[i].t1y*width+corners[i].t2y*width;
         float start = atan2f(-corners[i].t2y, -corners[i].t2x);
         float end   = atan2f(-corners[i].t1y, -corners[i].t1x);
         aa_arc(img, cx, cy, width, start, end, r,g,b);
@@ -220,7 +237,9 @@ void draw_wordsearch_box(SDL_Surface *img, int x1, int y1, int x2, int y2,
 int main(int argc, char **argv)
 {
     if (argc != 6)
-        errx(EXIT_FAILURE, "Usage: %s <grid.png> <grid_letters_folder> <word_letters_folder> <solver_output.txt> <annotated.png>\n", argv[0]);
+        errx(EXIT_FAILURE,
+        "Usage: %s <grid> <grid_letters_folder> <word_letters_folder>"
+        "<solver_output.txt> <annotated.png>\n", argv[0]);
 
     const char *grid_image = argv[1];
     const char *grid_letters_folder = argv[2];
@@ -236,12 +255,9 @@ int main(int argc, char **argv)
 
     SDL_Surface *loaded = IMG_Load(grid_image);
     if (!loaded)
-        errx(EXIT_FAILURE, "IMG_Load(%s) failed: %s\n", grid_image, IMG_GetError());
+        errx(EXIT_FAILURE, "IMG_Load(%s): %s\n", grid_image, IMG_GetError());
     SDL_Surface *img = SDL_ConvertSurfaceFormat(
-        loaded,
-        SDL_PIXELFORMAT_RGBA32,
-        0
-    );
+        loaded, SDL_PIXELFORMAT_RGBA32, 0);
     SDL_FreeSurface(loaded);
     if (!img)
         errx(EXIT_FAILURE, "SDL_ConvertSurfaceFormat failed");
@@ -250,18 +266,22 @@ int main(int argc, char **argv)
 
     // load grid letters
     int nb_grid_letters = 0;
-    LetterInfo *grid_letters = load_letters_from_folder(grid_letters_folder, &nb_grid_letters);
+    LetterInfo *grid_letters = load_letters_from_folder(grid_letters_folder,
+        &nb_grid_letters);
     if (!grid_letters || nb_grid_letters == 0)
-        errx(EXIT_FAILURE, "No grid letters loaded from %s (nb=%d)\n", grid_letters_folder, nb_grid_letters);
+        errx(EXIT_FAILURE, "No grid letters loaded from %s (nb=%d)\n",
+            grid_letters_folder, nb_grid_letters);
     printf("nb_grid_letters = %i\n", nb_grid_letters);
     // optionally load word letters (for list words)
     int nb_word_letters = 0;
     LetterInfo *word_letters = NULL;
     int use_word_letters = (strcmp(word_letters_folder, "-") != 0);
     if (use_word_letters) {
-        word_letters = load_letters_from_folder(word_letters_folder, &nb_word_letters);
+        word_letters = load_letters_from_folder(word_letters_folder,
+            &nb_word_letters);
         if (!word_letters || nb_word_letters == 0) {
-            fprintf(stderr, "Warning: no word letters loaded from %s (nb=%d). List-words will be skipped.\n",
+            fprintf(stderr,
+                "Warning: no word letters loaded from %s (nb=%d). skipped.\n",
                     word_letters_folder, nb_word_letters);
             use_word_letters = 0;
         }
@@ -283,8 +303,10 @@ int main(int argc, char **argv)
         if(strcmp("Not found\n", p) == 0)
         {
             printf("%s", p);
-            LetterInfo *first = get_first_letter(word_letters, nb_word_letters, word_id);
-            LetterInfo *last  = get_last_letter(word_letters, nb_word_letters, word_id);
+            LetterInfo *first = get_first_letter(word_letters,
+                nb_word_letters, word_id);
+            LetterInfo *last  = get_last_letter(word_letters,
+                nb_word_letters, word_id);
             thick_line(img, first->x-first->w*0.5f, first->y+first->h*0.2f,
                 last->x+last->w*1.5f, last->y+last->h*0.8f, COLOR_NOT_FOUND);
         }
@@ -294,21 +316,26 @@ int main(int argc, char **argv)
             int n = sscanf(p, "(%d,%d)(%d,%d)\n", &col1, &row1, &col2, &row2);
             if (n != 4)
             {
-                fprintf(stderr, "Warning: detect %d/4 something in (%s), skipping\n", n, p);
+                fprintf(stderr,
+                "Warning: detect %d/4 something in (%s), skipping\n", n, p);
                 continue;
             }
             Uint8 rr, gg, bb;
             pick_random_color(word_id, &rr, &gg, &bb);
             // find letters in grid_letters
-            LetterInfo *s = find_letter(grid_letters, nb_grid_letters, col1, row1);
-            LetterInfo *e = find_letter(grid_letters, nb_grid_letters, col2, row2);
-            int width_max = (int)fmax(5.0, fmax(fmax(s->w, s->h), fmax(e->w, e->h)));
+            LetterInfo *s = find_letter(grid_letters,
+                nb_grid_letters, col1, row1);
+            LetterInfo *e = find_letter(grid_letters,
+                nb_grid_letters, col2, row2);
+            int width_max = (int)fmax(5.0,
+                fmax(fmax(s->w, s->h), fmax(e->w, e->h)));
             printf("grid : s=%dx%d_(%dx%d_%dx%d) and e=%dx%d_(%dx%d_%dx%d)\n",
                 s->col, s->row, s->x, s->y, s->w, s->h,
                 e->col, e->row, s->x, s->y, e->w, e->h);
             if (!s || !e)
             {
-                fprintf(stderr, "Warning: grid letters not found for (%d,%d)-(%d,%d), skipping\n",
+                fprintf(stderr,
+                "Warning: no grid letter found (%d,%d)-(%d,%d), skipping\n",
                         col1, row1, col2, row2);
                 continue;
             }
@@ -318,15 +345,18 @@ int main(int argc, char **argv)
 
             if (use_word_letters)
             {
-                LetterInfo *first = get_first_letter(word_letters, nb_word_letters, word_id);
-                LetterInfo *last  = get_last_letter(word_letters, nb_word_letters, word_id);
+                LetterInfo *first = get_first_letter(word_letters,
+                    nb_word_letters, word_id);
+                LetterInfo *last  = get_last_letter(word_letters,
+                    nb_word_letters, word_id);
                 if (!first || !last)
                 {
-                    fprintf(stderr, "Warning: no word letters with word_id=%d\n", word_id);
+                    fprintf(stderr,
+                        "Warning: no word letters with word_id=%d\n",word_id);
                     continue;
                 } 
-                printf("wordid=%d s=(%dx%d_%dx%d) and e=(%dx%d_%dx%d)\n",word_id,
-                    first->x, first->y, first->w, first->h,
+                printf("wordid=%d s=(%dx%d_%dx%d) and e=(%dx%d_%dx%d)\n",
+                    word_id, first->x, first->y, first->w, first->h,
                     last->x, last->y, last->w, last->h);
                 draw_wordsearch_box(img, first->x + first->w / 2,
                     first->y + first->h / 2, last->x + last->w / 2,

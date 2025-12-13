@@ -17,7 +17,8 @@ int parse_letter_filename(const char *filename, LetterInfo *out)
     p--;
     while (p > filename && *p != '_') p--;
     int id, col, row,  x, y, w, h;
-    if(sscanf(p, "_%d_%dx%d_(%dx%d_%dx%d)", &id, &col, &row, &x, &y, &w, &h) != 7) 
+    if(sscanf(p, "_%d_%dx%d_(%dx%d_%dx%d)",
+        &id, &col, &row, &x, &y, &w, &h) != 7)
     {
         fprintf(stderr, "failed to parce : (%s) -> (%s)", filename, p);
         return EXIT_FAILURE;
