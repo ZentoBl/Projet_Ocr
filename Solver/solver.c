@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-int Check(int x,int y, int dx, int dy, char* word,int rows , int cols, char**grid)
+int Check(int x,int y, int dx, int dy, char* word,int rows 
+    , int cols, char**grid)
 {
     int x1 = x;
     int y1 = y;
@@ -42,7 +43,7 @@ int main(int argc, char *argv[]) {
 
     FILE *fp = fopen(filename, "r");
     if (!fp) {
-        perror("Erreur ouverture fichier");
+        perror("Erreur open folder");
         return 1;
     }
     char **grid = NULL;
