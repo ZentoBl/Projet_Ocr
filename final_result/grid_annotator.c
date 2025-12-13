@@ -12,7 +12,7 @@
 #define ALPHA_BORDER 128
 #define ALPHA_FILL 90
 // 0 for [], 0.4 for (), 0.5 for O, 1 for <>, 2 for {}, 4 for -[]-
-#define POWER 0.6
+#define POWER 0.5
 
 #define COLOR_NOT_FOUND 32, 16, 16, 180 // r, g, b, a (Uint8 : 0 to 225)
 
