@@ -234,9 +234,19 @@ int main(int argc, char **argv)
     if ((IMG_Init(flags) & flags) != flags)
         errx(EXIT_FAILURE, "IMG_Init error: %s\n", IMG_GetError());
 
-    SDL_Surface *img = IMG_Load(grid_image);
-    if (!img)
+    SDL_Surface *loaded = IMG_Load(grid_image);
+    if (!loaded)
         errx(EXIT_FAILURE, "IMG_Load(%s) failed: %s\n", grid_image, IMG_GetError());
+    SDL_Surface *img = SDL_ConvertSurfaceFormat(
+        loaded,
+        SDL_PIXELFORMAT_RGBA32,
+        0
+    );
+    SDL_FreeSurface(loaded);
+    if (!img)
+        errx(EXIT_FAILURE, "SDL_ConvertSurfaceFormat failed");
+    if (SDL_MUSTLOCK(img))
+        SDL_LockSurface(img);
 
     // load grid letters
     int nb_grid_letters = 0;
@@ -270,7 +280,6 @@ int main(int argc, char **argv)
         char *p = line;
         while (*p && isspace((unsigned char)*p)) p++;
         if (*p == '\0' || *p == '\n') continue;
-
         if(strcmp("Not found\n", p) == 0)
         {
             printf("%s", p);
@@ -294,8 +303,10 @@ int main(int argc, char **argv)
             LetterInfo *s = find_letter(grid_letters, nb_grid_letters, col1, row1);
             LetterInfo *e = find_letter(grid_letters, nb_grid_letters, col2, row2);
             int width_max = (int)fmax(5.0, fmax(fmax(s->w, s->h), fmax(e->w, e->h)));
-            printf("s=%dx%d,%dx%d, e=%dx%d,%dx%d\n", s->col, s->row, s->w, s->h, e->col, e->row, e->w, e->h);
-            if (!s)
+            printf("grid : s=%dx%d_(%dx%d_%dx%d) and e=%dx%d_(%dx%d_%dx%d)\n",
+                s->col, s->row, s->x, s->y, s->w, s->h,
+                e->col, e->row, s->x, s->y, e->w, e->h);
+            if (!s || !e)
             {
                 fprintf(stderr, "Warning: grid letters not found for (%d,%d)-(%d,%d), skipping\n",
                         col1, row1, col2, row2);
@@ -313,8 +324,8 @@ int main(int argc, char **argv)
                 {
                     fprintf(stderr, "Warning: no word letters with word_id=%d\n", word_id);
                     continue;
-                }
-                printf("list : (%d,%d)(%d,%d) and (%d,%d)(%d,%d)\n",
+                } 
+                printf("wordid=%d s=(%dx%d_%dx%d) and e=(%dx%d_%dx%d)\n",word_id,
                     first->x, first->y, first->w, first->h,
                     last->x, last->y, last->w, last->h);
                 draw_wordsearch_box(img, first->x + first->w / 2,
@@ -324,6 +335,8 @@ int main(int argc, char **argv)
         }
     }
     fclose(solver_fp);
+    if (SDL_MUSTLOCK(img))
+        SDL_UnlockSurface(img);
     if (IMG_SavePNG(img, output_image) != 0)
         err(EXIT_FAILURE, "IMG_SavePNG failed: %s\n", IMG_GetError());
     printf("Annotated image saved to %s\n", output_image);
