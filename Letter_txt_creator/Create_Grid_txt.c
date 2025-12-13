@@ -3,7 +3,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <SDL2/SDL.h>
-#include "../AI/AI_Load.c"
+#include "AI_Load.c"
 
 #define MAX_FILES 1000
 #define MAX_FILENAME 256
