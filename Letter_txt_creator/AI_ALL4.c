@@ -86,9 +86,9 @@ double *convert_surface_to_matrix(SDL_Surface *surface)
 
     if (w > INPUT_WIDTH || h > INPUT_HEIGHT)
     {
-        fprintf(stderr, "Erreur: Image chargee (%dx%d) est trop grande."
+        fprintf(stderr, "Erreur: Image load (%dx%d) to big."
             , w, h);
-        fprintf(stderr, " Elle doit etre <= %dx%d.\n"
+        fprintf(stderr, " need <= %dx%d.\n"
             , INPUT_WIDTH, INPUT_HEIGHT);
         return NULL;
     }
@@ -102,7 +102,7 @@ double *convert_surface_to_matrix(SDL_Surface *surface)
 
     if (SDL_LockSurface(surface) != 0)
     {
-        fprintf(stderr, "Erreur SDL lors du verrouillage: %s\n"
+        fprintf(stderr, "Erreur SDL: %s\n"
             , SDL_GetError());
         free(matrix);
         return NULL;
@@ -146,7 +146,7 @@ DatasetCollection load_and_process_images(const char *dir_path)
     d = opendir(dir_path);
     if (!d)
     {
-        fprintf(stderr, "Erreur: Impossible d'ouvrir le repertoire '%s'.\n",
+        fprintf(stderr, "Erreur: Impossible open repo '%s'.\n",
                 dir_path);
         return (DatasetCollection){NULL, 0};
     }
@@ -166,7 +166,8 @@ DatasetCollection load_and_process_images(const char *dir_path)
         if (len > 4 && strcmp(filename + len - 4, ".bmp") == 0)
         {
             char full_path[512];
-            snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, filename);
+            snprintf(full_path, sizeof(full_path), "%s/%s"
+            , dir_path, filename);
 
             SDL_Surface *image_surface = SDL_LoadBMP(full_path);
 
@@ -323,7 +324,7 @@ int save_network(const char *filename)
     FILE *file = fopen(filename, "w");
     if (file == NULL)
     {
-        perror("Erreur lors de l'ouverture du fichier de sauvegarde");
+        perror("Erreur open save");
         return -1;
     }
 
@@ -369,10 +370,10 @@ int save_network(const char *filename)
 int main()
 {
     int epochs;
-    printf("Entrez le nombre de generations (epochs) d'entrainement: ");
+    printf("Number of gen");
     if (scanf("%d", &epochs) != 1 || epochs <= 0)
     {
-        printf("Saisie invalide. Arret.\n");
+        printf("Fail gen\n");
         return 1;
     }
 
@@ -380,7 +381,7 @@ int main()
 
     if (collection.size == 0)
     {
-        fprintf(stderr, "Aucune image chargee. Entrainement annule.\n");
+        fprintf(stderr, "NO image\n");
         return 1;
     }
 
@@ -389,7 +390,7 @@ int main()
 
     initialize_network();
 
-    printf("\n--- Debut de l'entrainement sur %d images %dx%d ---\n",
+    printf("\n--- Start trainning %d images %dx%d ---\n",
            DATASET_SIZE, INPUT_WIDTH, INPUT_HEIGHT);
 
     for (int epoch = 1; epoch <= epochs; epoch++)
@@ -430,10 +431,10 @@ int main()
                                   DATASET_SIZE * 100.0;
 
             printf("\n--- Generation %d ---\n", epoch);
-            printf("Taux de reussite global: **%.2f%%** (%d/%d)\n",
+            printf("Succes rate: **%.2f%%** (%d/%d)\n",
                    success_rate, total_successful_predictions, DATASET_SIZE);
             printf("--------------------------------------------------\n");
-            printf("Statut detaille par Lettre (Succes/Total) :\n");
+            printf("Detail) :\n");
 
             for (int k = 0; k < OUTPUT_SIZE; k++)
             {
@@ -450,13 +451,13 @@ int main()
                     if (successful_count_per_unique_letter[k] ==
                         count_per_unique_letter[k])
                     {
-                        printf("✅ SUCCES PARFAIT (100.00%%, %d/%d)\n",
+                        printf("✅ SUCCES (100.00%%, %d/%d)\n",
                                successful_count_per_unique_letter[k],
                                count_per_unique_letter[k]);
                     }
                     else
                     {
-                        printf("❌ ECHEC ou PARTIEL (%.2f%%, %d/%d)\n",
+                        printf("❌ Fail (%.2f%%, %d/%d)\n",
                                letter_rate,
                                successful_count_per_unique_letter[k],
                                count_per_unique_letter[k]);
@@ -467,34 +468,34 @@ int main()
         }
     }
 
-    printf("\n--- Entrainement termine ---\n");
+    printf("\n--- Finish train ---\n");
 
     char save_choice[10];
     printf("\n\n------------------------------------------------\n");
-    printf("Sauvegarder les parametres du reseau ?\n");
-    printf("Saisissez 'O' (Oui) ou 'N' (Non) : ");
+    printf("Save AI ?\n");
+    printf("Choise 'Y' (Yes) ou 'N' (No) : ");
 
     if (scanf("%s", save_choice) == 1 &&
         (save_choice[0] == 'O' || save_choice[0] == 'o'))
     {
-        printf("Nom du fichier de sauvegarde (ex: mon_modele.txt) : ");
+        printf("name file save : ");
         char filename[256];
         if (scanf("%s", filename) == 1)
         {
             if (save_network(filename) == 0)
             {
-                printf("✅ Sauvegarde reussie dans le fichier '%s'!\n"
+                printf("✅ save '%s'!\n"
                     , filename);
             }
             else
             {
-                printf("❌ La sauvegarde a echoue.\n");
+                printf("❌ not save\n");
             }
         }
     }
     else
     {
-        printf("Sauvegarde annulee.\n");
+        printf("not save.\n");
     }
 
     for (int i = 0; i < DATASET_SIZE; i++)

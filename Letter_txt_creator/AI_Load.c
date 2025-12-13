@@ -50,7 +50,7 @@ char* recognize_image(const char* model_path, const char* image_path) {
     
     if (!network_loaded || strcmp(loaded_model, model_path) != 0) {
         if (load_network(model_path) != 0) {
-            fprintf(stderr, "Erreur: Impossible de charger le modele '%s'\n",
+            fprintf(stderr, "Erreur: Impossible load model '%s'\n",
                     model_path);
             return NULL;
         }
@@ -60,12 +60,12 @@ char* recognize_image(const char* model_path, const char* image_path) {
     
     SDL_Surface *image_surface = SDL_LoadBMP(image_path);
     if (!image_surface) {
-        fprintf(stderr, "Erreur: Impossible de charger l'image '%s': %s\n", 
+        fprintf(stderr, "Erreur: Impossile load image '%s': %s\n",
                 image_path, SDL_GetError());
         return NULL;
     }
     
-    if (image_surface->w > INPUT_WIDTH+2 || image_surface->h > INPUT_HEIGHT+2) 
+    if (image_surface->w > INPUT_WIDTH+2 || image_surface->h > INPUT_HEIGHT+2)
     {
         SDL_FreeSurface(image_surface);
         return "LAA";
