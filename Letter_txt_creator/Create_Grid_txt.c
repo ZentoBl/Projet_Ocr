@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <SDL2/SDL.h>
+#include "../AI/AI_Load.c"
 
 #define MAX_FILES 1000
 #define MAX_FILENAME 256
@@ -89,8 +91,15 @@ int comparer_positions(const void *a, const void *b) {
     return pa->col - pb->col;      // Puis par col
 }
 
+// Structure pour stocker position et résultat de reconnaissance
+typedef struct {
+    Position pos;
+    char *result;
+    char chemin_image[512];
+} ImageData;
+
 // Fonction récursive pour parcourir les sous-dossiers
-void parcourir_dossiers(const char *chemin, Position *positions, int *nb_positions) {
+void parcourir_dossiers(const char *chemin, ImageData *images, int *nb_images) {
     DIR *dir;
     struct dirent *entry;
     char chemin_complet[512];
@@ -100,7 +109,7 @@ void parcourir_dossiers(const char *chemin, Position *positions, int *nb_positio
         return;
     }
     
-    while ((entry = readdir(dir)) != NULL && *nb_positions < MAX_FILES) {
+    while ((entry = readdir(dir)) != NULL && *nb_images < MAX_FILES) {
         // Ignorer . et ..
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
@@ -109,13 +118,16 @@ void parcourir_dossiers(const char *chemin, Position *positions, int *nb_positio
         
         // Si c'est un dossier, parcourir récursivement
         if (entry->d_type == DT_DIR) {
-            parcourir_dossiers(chemin_complet, positions, nb_positions);
+            parcourir_dossiers(chemin_complet, images, nb_images);
         }
-        // Si c'est un fichier .bmp, extraire la position
+        // Si c'est un fichier .bmp, extraire la position et reconnaître l'image
         else if (strstr(entry->d_name, ".bmp") != NULL) {
             Position pos;
             if (extraire_position(entry->d_name, &pos)) {
-                positions[(*nb_positions)++] = pos;
+                images[*nb_images].pos = pos;
+                snprintf(images[*nb_images].chemin_image, sizeof(images[*nb_images].chemin_image), "%s", chemin_complet);
+                images[*nb_images].result = NULL;
+                (*nb_images)++;
                 printf("Trouvé: %s -> row=%d, col=%d\n", entry->d_name, pos.row, pos.col);
             }
         }
@@ -125,30 +137,49 @@ void parcourir_dossiers(const char *chemin, Position *positions, int *nb_positio
 
 // Fonction principale
 void creer_grille(const char *repertoire, const char *fichier_sortie) {
-    Position positions[MAX_FILES];
-    int nb_positions = 0;
+    ImageData images[MAX_FILES];
+    int nb_images = 0;
     
     // Parcourir récursivement tous les sous-dossiers
-    parcourir_dossiers(repertoire, positions, &nb_positions);
+    parcourir_dossiers(repertoire, images, &nb_images);
     
-    printf("Nombre de fichiers trouvés: %d\n", nb_positions);
+    printf("Nombre de fichiers trouvés: %d\n", nb_images);
     
-    if (nb_positions == 0) {
+    if (nb_images == 0) {
         printf("Aucune position trouvée.\n");
         return;
     }
     
     // Trier les positions
-    qsort(positions, nb_positions, sizeof(Position), comparer_positions);
+    qsort(images, nb_images, sizeof(ImageData), comparer_positions);
+    
+    // Initialiser SDL
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        printf("Erreur: impossible d'initialiser SDL\n");
+        return;
+    }
+    
+    // Reconnaître toutes les images
+    printf("\nRéconnaissance des images en cours...\n");
+    for (int i = 0; i < nb_images; i++) {
+        images[i].result = recognize_image("../AI/save", images[i].chemin_image);
+        if (images[i].result) {
+            printf("Image %d: %s -> Résultat: %s\n", i, images[i].chemin_image, images[i].result);
+        } else {
+            printf("Image %d: %s -> Erreur de reconnaissance\n", i, images[i].chemin_image);
+        }
+    }
+    
+    SDL_Quit();
     
     // Trouver les dimensions de la grille et afficher les statistiques
     int max_row = 0, max_col = 0;
     int min_row = 999999, min_col = 999999;
-    for (int i = 0; i < nb_positions; i++) {
-        if (positions[i].row > max_row) max_row = positions[i].row;
-        if (positions[i].col > max_col) max_col = positions[i].col;
-        if (positions[i].row < min_row) min_row = positions[i].row;
-        if (positions[i].col < min_col) min_col = positions[i].col;
+    for (int i = 0; i < nb_images; i++) {
+        if (images[i].pos.row > max_row) max_row = images[i].pos.row;
+        if (images[i].pos.col > max_col) max_col = images[i].pos.col;
+        if (images[i].pos.row < min_row) min_row = images[i].pos.row;
+        if (images[i].pos.col < min_col) min_col = images[i].pos.col;
     }
     
     printf("Statistiques:\n");
@@ -159,7 +190,7 @@ void creer_grille(const char *repertoire, const char *fichier_sortie) {
     int nb_cols = max_col - min_col + 1;
     
     printf("Dimensions de la grille: %d lignes x %d colonnes\n", nb_cols, nb_rows);
-    printf("Positions attendues: %d (fichiers trouvés: %d)\n", nb_cols * nb_rows, nb_positions);
+    printf("Positions attendues: %d (fichiers trouvés: %d)\n", nb_cols * nb_rows, nb_images);
     
     // Créer la grille
     char **grille = malloc(nb_cols * sizeof(char *));
@@ -169,11 +200,19 @@ void creer_grille(const char *repertoire, const char *fichier_sortie) {
         grille[i][nb_rows] = '\0';
     }
     
-    // Placer les X aux positions (en normalisant avec min_row et min_col)
-    for (int i = 0; i < nb_positions; i++) {
-        int r = positions[i].row - min_row;
-        int c = positions[i].col - min_col;
-        grille[c][r] = 'X';
+    // Placer les résultats de reconnaissance aux positions (en normalisant avec min_row et min_col)
+    for (int i = 0; i < nb_images; i++) {
+        int r = images[i].pos.row - min_row;
+        int c = images[i].pos.col - min_col;
+        if (images[i].result && images[i].result[0] != '\0') {
+            // Placer tous les caractères du résultat horizontalement
+            for (int j = 0; images[i].result[j] != '\0' && (r + j) < nb_rows; j++) {
+                grille[c][r + j] = images[i].result[j];
+            }
+        } else {
+            // Si pas de résultat, mettre un '?'
+            grille[c][r] = '?';
+        }
     }
     
     // Écrire dans le fichier
@@ -183,14 +222,21 @@ void creer_grille(const char *repertoire, const char *fichier_sortie) {
         return;
     }
     
+    // Écrire la grille
     for (int i = 0; i < nb_cols; i++) {
         fprintf(f, "%s\n", grille[i]);
     }
+    
     fclose(f);
     
     printf("Grille créée dans %s\n", fichier_sortie);
     
     // Libérer la mémoire
+    for (int i = 0; i < nb_images; i++) {
+        if (images[i].result) {
+            free(images[i].result);
+        }
+    }
     for (int i = 0; i < nb_cols; i++) {
         free(grille[i]);
     }
@@ -204,7 +250,7 @@ int main(int argc, char *argv[]) {
     if (argc > 1) repertoire = argv[1];
     if (argc > 2) fichier_sortie = argv[2];
     
-    // Vérifier si argv[2] contient "word"
+    // Vérifier si argv[1] contient "word"
     if (argc > 1 && strstr(argv[1], "images_word_letters") != NULL) {
         extraire_position = extraire_position_word;
         printf("Mode: inversion pour level_2_image_1\n");
