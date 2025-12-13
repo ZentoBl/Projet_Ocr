@@ -11,6 +11,9 @@ create_grid: Create_Grid_txt.c
 	gcc $(CFLAGS) Create_Grid_txt.c -o $@ $(LDFLAGS)
 
 
-clean:
+clean: cleanimg
 	rm -f $(TARGETS)
+	
+
+cleanimg:
 	rm -f grid.txt word.txt
