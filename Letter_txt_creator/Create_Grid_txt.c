@@ -162,7 +162,7 @@ void creer_grille(const char *repertoire, const char *fichier_sortie) {
     // Reconnaître toutes les images
     printf("\nRéconnaissance des images en cours...\n");
     for (int i = 0; i < nb_images; i++) {
-        images[i].result = recognize_image("../AI/save", images[i].chemin_image);
+        images[i].result = recognize_image("save", images[i].chemin_image);
         if (images[i].result) {
             printf("Image %d: %s -> Résultat: %s\n", i, images[i].chemin_image, images[i].result);
         } else {
