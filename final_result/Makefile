@@ -18,7 +18,7 @@ run: all
 	done < ../Letter_txt_creator/word.txt
 
 	./ocr_draw \
-		../image_modifier/tests_images/level_1_image_1.png \
+		original_image_rotated.bmp\
 		../image_modifier/images_grid_letters/ \
 		../image_modifier/images_word_letters/ \
 		solver_output.txt \
@@ -27,3 +27,4 @@ run: all
 clean:
 	rm -f *.o ocr_draw
 	rm -f solver_output.txt annotated.png
+	rm -f original_image_rotated.bmp

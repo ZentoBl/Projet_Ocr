@@ -65,12 +65,13 @@ double calculate_alignment_score(MagickWand *wand) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <image.bmp>\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <nb_image_for_angle.bmp> <original_image>\n", argv[0]);
         return 1;
     }
 
     MagickWandGenesis();
+    MagickWand *angle_src = NewMagickWand();
     MagickWand *orig = NewMagickWand();
     MagickWand *worker = NewMagickWand();
     PixelWand *white_bg = NewPixelWand();
@@ -78,11 +79,15 @@ int main(int argc, char **argv) {
     PixelSetColor(white_bg, "white");
 
     // 1. Lecture
-    if (MagickReadImage(orig, argv[1]) == MagickFalse) 
+    // a) image N&B pour calculer l'angle
+    if (MagickReadImage(angle_src, argv[1]) == MagickFalse)
+        ThrowWandException(angle_src);
+    // b) image originale pour application de la rotation
+    if (MagickReadImage(orig, argv[2]) == MagickFalse)
         ThrowWandException(orig);
 
-    // 2. Préparation de l'image de travail (copie réduite pour la vitesse)
-    worker = CloneMagickWand(orig);
+    // 2. Préparation de l'image de travail (copie réduite de l'image N&B pour la vitesse)
+    worker = CloneMagickWand(angle_src);
     
     // On redimensionne si l'image est trop grosse (> WORK_WIDTH) pour accélérer le calcul
     size_t w = MagickGetImageWidth(orig);
@@ -197,26 +202,22 @@ int main(int argc, char **argv) {
     // MagickRotateImage tourne dans le sens horaire pour un angle positif.
     MagickRotateImage(orig, white_bg, apply_angle);
 
-    // 6. Recadrage léger : enlever seulement les bandes blanches extrêmes
-    // Réduire légèrement si l'image a grandi (limiter à +20% max)
-    size_t rotated_w = MagickGetImageWidth(orig);
-    size_t rotated_h = MagickGetImageHeight(orig);
-    if (rotated_w > 1300 || rotated_h > 1100) {  // Seuils adapté au doc standard
-        // Recadrer modérément
-        size_t new_w = (rotated_w > 1300) ? 1300 : rotated_w;
-        size_t new_h = (rotated_h > 1100) ? 1100 : rotated_h;
-        ssize_t offset_x = (ssize_t)((rotated_w - new_w) / 2);
-        ssize_t offset_y = (ssize_t)((rotated_h - new_h) / 2);
-        MagickCropImage(orig, new_w, new_h, offset_x, offset_y);
-    }
-
+    // 6. Sauvegardes
+    // a) Copie pour l'interface
     char outname[256];
     snprintf(outname, 256, "final_rotated.bmp");
     MagickWriteImage(orig, outname);
     printf("Image sauvegardée : %s\n", outname);
 
+    // b) Copie de l'original pivoté (archive)
+    char out_archive[256];
+    snprintf(out_archive, 256, "../../final_result/original_image_rotated.bmp");
+    MagickWriteImage(orig, out_archive);
+    printf("Image sauvegardée : %s\n", out_archive);
+
     DestroyPixelWand(white_bg);
     DestroyMagickWand(worker);
+    DestroyMagickWand(angle_src);
     DestroyMagickWand(orig);
     MagickWandTerminus();
     return 0;
