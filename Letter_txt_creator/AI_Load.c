@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <err.h>
 #include <SDL2/SDL.h>
+#include <dirent.h>
+#include <string.h>
 
 #define INPUT_WIDTH 45
 #define INPUT_HEIGHT 45
@@ -40,6 +42,7 @@ void save_surface(SDL_Surface* surf, const char* prefix, int part_num,
                  char predicted);
 double* convert_surface_to_matrix(SDL_Surface* surface);
 int load_network(const char *filename);
+char recognize(SDL_Surface* surface);
 
 char* recognize_image(const char* model_path, const char* image_path) {
     static int network_loaded = 0;
@@ -62,11 +65,19 @@ char* recognize_image(const char* model_path, const char* image_path) {
         return NULL;
     }
     
-    char* result = recognize_recursive(image_surface, 0, "");
-    
+    if (image_surface->w > INPUT_WIDTH+2 || image_surface->h > INPUT_HEIGHT+2) 
+    {
+        SDL_FreeSurface(image_surface);
+        return "LAA";
+    }
+
+    char result = recognize(image_surface);
+    char* result2 = malloc(2);
+    result2[0]= result;
+    result2[1]= '\0';
     SDL_FreeSurface(image_surface);
     
-    return result;
+    return result2;
 }
 
 double sigmoid(double x) {
@@ -77,12 +88,13 @@ double* convert_surface_to_matrix(SDL_Surface* surface) {
     int w = surface->w;
     int h = surface->h;
 
+    /*
     if (w > INPUT_WIDTH || h > INPUT_HEIGHT) {
         fprintf(stderr, "Erreur: Image chargee (%dx%d) trop grande.\n", 
                 w, h);
         return NULL;
     }
-
+    */
     double* matrix = (double*)calloc(INPUT_SIZE, sizeof(double));
     if (!matrix) return NULL;
 
@@ -135,6 +147,37 @@ void forward_pass(const double *input) {
         }
         output_outputs[k] = sigmoid(sum);
     }
+}
+
+char recognize(SDL_Surface* surface) 
+{
+    char result;
+    
+    double *user_input = convert_surface_to_matrix(surface);
+    
+    if (user_input == NULL) {
+        return result;
+    }
+
+    forward_pass(user_input);
+    
+    double max_output = -1.0;
+    int best_index = -1;
+    
+    for(int k = 0; k < OUTPUT_SIZE; k++) {
+        if(output_outputs[k] > max_output) {
+            max_output = output_outputs[k];
+            best_index = k;
+        }
+    }
+    
+    free(user_input);
+
+    if (best_index != -1) {
+        result = (char)('A' + best_index);
+    }
+    
+    return result;
 }
 
 PredictionResult simple_recognition(SDL_Surface* surface) {
@@ -356,7 +399,7 @@ char* recognize_recursive(SDL_Surface* surface, int depth,
         int nb_cuts = estimated_letters - 1;
         
         if (nb_cuts < 1) nb_cuts = 1;
-        if (nb_cuts > 5) nb_cuts = 5;
+        if (nb_cuts > 3) nb_cuts = 3;
         
         int* positions = split_pos(surface, nb_cuts);
         
