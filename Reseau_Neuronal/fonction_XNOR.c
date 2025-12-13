@@ -3,40 +3,40 @@
 #include <stdlib.h>
 #include <time.h>
 
-// Fonction d'activation sigmoid
+// Sigmoid activation function
 double sigmoid(double x)
 {
     return 1.0 / (1.0 + exp(-x));
 }
 
-// Dérivée de sigmoid (nécessaire pour backpropagation)
+// Sigmoid derivative (needed for backpropagation)
 double sigmoid_derivative(double x)
 {
     double sig = sigmoid(x);
     return sig * (1.0 - sig);
 }
 
-// Structure du réseau neuronal pour !A.!B + A.B
+// Neural network structure for !A.!B + A.B
 typedef struct 
 {
-    // Couche cachée : 2 neurones pour calculer !A.!B et A.B
-    double hidden_weights[2][2];  // [neurone][entrée]
+    // Hidden layer: 2 neurons to compute !A.!B and A.B
+    double hidden_weights[2][2];  // [neuron][input]
     double hidden_bias[2];
     
-    // Couche de sortie : combine les deux résultats
+    // Output layer: combines both results
     double output_weights[2];
     double output_bias;
     
-    // Taux d'apprentissage
+    // Learning rate
     double learning_rate;
 } NeuralNetwork;
 
-// Initialisation ALEATOIRE du réseau (pour l'apprentissage)
+// RANDOM initialization of the network (for training)
 void init_network_random(NeuralNetwork *nn)
 {
     srand(time(NULL));
     
-    // Initialisation aléatoire entre -1 et 1
+    // Random initialization between -1 and 1
     for (int i = 0; i < 2; i++) 
     {
         for (int j = 0; j < 2; j++) 
@@ -48,16 +48,16 @@ void init_network_random(NeuralNetwork *nn)
     }
     nn->output_bias = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
     
-    nn->learning_rate = 0.5;  // Taux d'apprentissage
+    nn->learning_rate = 0.5;  // Learning rate
 }
 
 
 
-// Propagation avant 
+// Forward propagation 
 void forward(NeuralNetwork *nn, double a, double b, double *hidden, 
     double *hidden_sum, double *output, double *output_sum)
 {
-    // Couche cachée : calcul des deux neurones
+    // Hidden layer: compute both neurons
     for (int i = 0; i < 2; i++)
     {
         hidden_sum[i] = nn->hidden_weights[i][0] * a + 
@@ -66,14 +66,14 @@ void forward(NeuralNetwork *nn, double a, double b, double *hidden,
         hidden[i] = sigmoid(hidden_sum[i]);
     }
     
-    // Couche de sortie
+    // Output layer
     *output_sum = nn->output_weights[0] * hidden[0] + 
                   nn->output_weights[1] * hidden[1] + 
                   nn->output_bias;
     *output = sigmoid(*output_sum);
 }
 
-// Prédiction (0 ou 1)
+// Prediction (0 or 1)
 int predict(NeuralNetwork *nn, double a, double b) 
 {
     double hidden[2], hidden_sum[2], output, output_sum;
@@ -81,32 +81,32 @@ int predict(NeuralNetwork *nn, double a, double b)
     return (output > 0.5) ? 1 : 0;
 }
 
-// Calcul de l'erreur (loss)
+// Compute loss (error)
 double compute_loss(NeuralNetwork *nn, double a, double b, 
     double expected) 
 {
     double hidden[2], hidden_sum[2], output, output_sum;
     forward(nn, a, b, hidden, hidden_sum, &output, &output_sum);
     double error = output - expected;
-    return error * error;  // Erreur
+    return error * error;  // Error
 }
 
-// BACKPROPAGATION : Le coeur de l'apprentissage 
+// BACKPROPAGATION: The heart of learning 
 void backpropagate(NeuralNetwork *nn, double a, double b, 
     double expected)
 {
     double hidden[2], hidden_sum[2], output, output_sum;
     
-    // 1. Forward pass pour obtenir toutes les valeurs
+    // 1. Forward pass to get all values
     forward(nn, a, b, hidden, hidden_sum, &output, &output_sum);
     
-    // 2. Calcul de l'erreur en sortie
+    // 2. Compute output error
     double output_error = output - expected;
     
-    // 3. Gradient de la couche de sortie
+    // 3. Gradient of the output layer
     double output_delta = output_error * sigmoid_derivative(output_sum);
     
-    // 4. Calcul des gradients pour les neurones cachés
+    // 4. Compute gradients for hidden neurons
     double hidden_delta[2];
     for (int i = 0; i < 2; i++) 
     {
@@ -115,14 +115,14 @@ void backpropagate(NeuralNetwork *nn, double a, double b,
             sigmoid_derivative(hidden_sum[i]);
     }
     
-    // 5. Mise à jour des poids de la couche de sortie
+    // 5. Update output layer weights
     for (int i = 0; i < 2; i++) 
     {
         nn->output_weights[i] -= nn->learning_rate * output_delta * hidden[i];
     }
     nn->output_bias -= nn->learning_rate * output_delta;
     
-    // 6. Mise à jour des poids de la couche cachée
+    // 6. Update hidden layer weights
     double inputs[2] = {a, b};
     for (int i = 0; i < 2; i++) 
     {
@@ -135,19 +135,19 @@ void backpropagate(NeuralNetwork *nn, double a, double b,
     }
 }
 
-// Entraînement du réseau
+// Train the network
 void train(NeuralNetwork *nn, int simulations, int verbose) 
 {
     double inputs[4][2] = {{0,0}, {0,1}, {1,0}, {1,1}};
     double expected[4] = {1, 0, 0, 1};  // XNOR
     
-    printf("\n=== Début de l'entraînement ===\n");
+    printf("\n=== Training Started ===\n");
     
     for (int simulation = 0; simulation < simulations; simulation++) 
     {
         double total_loss = 0.0;
         
-        // Entraîner sur tous les exemples
+        // Train on all examples
         for (int i = 0; i < 4; i++) 
         {
             backpropagate(nn, inputs[i][0], inputs[i][1], expected[i]);
@@ -155,22 +155,22 @@ void train(NeuralNetwork *nn, int simulations, int verbose)
                 expected[i]);
         }
         
-        // Afficher la progression toutes les 1000 simulations
+        // Display progress every 1000 simulations
         if (verbose && (simulation % 1000 == 0 || simulation == simulations - 1)) 
         {
-            printf("simulation %d: Loss = %.6f\n", simulation, total_loss / 4.0);
+            printf("Simulation %d: Loss = %.6f\n", simulation, total_loss / 4.0);
         }
     }
     
-    printf("=== Entraînement terminé ===\n");
+    printf("=== Training Completed ===\n");
 }
 
-// Test de la table de vérité
+// Test the truth table
 void test_truth_table(NeuralNetwork *nn) 
 {
-    printf("\n=== Table de Vérité !A.!B + A.B ===\n");
-    printf("A | B | !A.!B | A.B | Attendu | Résultat | Correct\n");
-    printf("--|---|-------|-----|---------|----------|--------\n");
+    printf("\n=== Truth Table !A.!B + A.B ===\n");
+    printf("A | B | !A.!B | A.B | Expected | Result | Correct\n");
+    printf("--|---|-------|-----|----------|--------|--------\n");
     
     double inputs[4][2] = {{0,0}, {0,1}, {1,0}, {1,1}};
     int expected[4] = {1, 0, 0, 1};
@@ -188,65 +188,65 @@ void test_truth_table(NeuralNetwork *nn)
         
         if (correct) correct_count++;
         
-        printf("%d | %d |   %d   |  %d  |    %d    |    %d     |   %s\n",
+        printf("%d | %d |   %d   |  %d  |    %d     |   %d    |   %s\n",
             a, b, not_a_not_b, a_and_b, expected[i], 
             result, correct ? "✓" : "✗");
     }
     
-    printf("\nPrécision: %d/4 (%.0f%%)\n", correct_count, 
+    printf("\nAccuracy: %d/4 (%.0f%%)\n", correct_count, 
         (correct_count / 4.0) * 100);
 }
 
-// Affichage détaillé du calcul
+// Detailed calculation display
 void display_calculation(NeuralNetwork *nn, double a, double b) 
 {
     double hidden[2], hidden_sum[2], output, output_sum;
     
     forward(nn, a, b, hidden, hidden_sum, &output, &output_sum);
     
-    printf("\n=== Calcul détaillé pour A=%.0f, B=%.0f ===\n", a, b);
+    printf("\n=== Detailed Calculation for A=%.0f, B=%.0f ===\n", a, b);
     
     for (int i = 0; i < 2; i++) 
     {
         if (i == 0) 
-            printf("\nNeurone caché 1:\n");
+            printf("\nHidden Neuron 1:\n");
         else 
-            printf("\nNeurone caché 2:\n");
+            printf("\nHidden Neuron 2:\n");
             
-        printf("\tSomme: %.2f * %.0f + %.2f * %.0f + %.2f = %.2f\n",
+        printf("\tSum: %.2f * %.0f + %.2f * %.0f + %.2f = %.2f\n",
             nn->hidden_weights[i][0], a, 
             nn->hidden_weights[i][1], b, 
             nn->hidden_bias[i], hidden_sum[i]);
         printf("\tSigmoid(%.2f) = %.4f\n", hidden_sum[i], hidden[i]);
-        printf("\tValeur binaire: %d\n", (hidden[i] > 0.5) ? 1 : 0);
+        printf("\tBinary value: %d\n", (hidden[i] > 0.5) ? 1 : 0);
     }
     
-    printf("\nCouche de sortie:\n");
-    printf("\tSomme: %.2f * %.4f + %.2f * %.4f + %.2f = %.2f\n",
+    printf("\nOutput Layer:\n");
+    printf("\tSum: %.2f * %.4f + %.2f * %.4f + %.2f = %.2f\n",
         nn->output_weights[0], hidden[0],
         nn->output_weights[1], hidden[1],
         nn->output_bias, output_sum);
     printf("\tSigmoid(%.2f) = %.4f\n", output_sum, output);
-    printf("\tRésultat final: %d\n", (output > 0.5) ? 1 : 0);
+    printf("\tFinal result: %d\n", (output > 0.5) ? 1 : 0);
 }
 
-// Affichage de l'architecture
+// Display architecture
 void display_architecture(NeuralNetwork *nn) 
 {
-    printf("\n=== Architecture du Réseau ===\n");
-    printf("\nCouche d'entrée: 2 neurones (A, B)\n");
-    printf("\nCouche cachée: 2 neurones\n");
-    printf("  Neurone 1:\n");
+    printf("\n=== Network Architecture ===\n");
+    printf("\nInput layer: 2 neurons (A, B)\n");
+    printf("\nHidden layer: 2 neurons\n");
+    printf("  Neuron 1:\n");
     printf("\tw1=%.4f, w2=%.4f, bias=%.4f\n",
         nn->hidden_weights[0][0], 
         nn->hidden_weights[0][1], 
         nn->hidden_bias[0]);
-    printf("  Neurone 2:\n");
+    printf("  Neuron 2:\n");
     printf("\tw1=%.4f, w2=%.4f, bias=%.4f\n",
         nn->hidden_weights[1][0], 
         nn->hidden_weights[1][1], 
         nn->hidden_bias[1]);
-    printf("\nCouche de sortie: 1 neurone\n");
+    printf("\nOutput layer: 1 neuron\n");
     printf("\tw1=%.4f, w2=%.4f, bias=%.4f\n",
         nn->output_weights[0], 
         nn->output_weights[1], 
@@ -257,30 +257,30 @@ int main()
 {
     NeuralNetwork nn;
     
-    printf("=== Réseau Neuronal XNOR avec Apprentissage ===\n");
-    printf("2. Réseau qui apprend (poids aléatoires + backpropagation)\n");
+    printf("=== XNOR Neural Network with Learning ===\n");
+    printf("2. Network that learns (random weights + backpropagation)\n");
     
    
     
     init_network_random(&nn);
-    printf("\n=== Mode: Apprentissage ===\n");
-    printf("\nPoids AVANT l'entraînement (aléatoires):\n");
+    printf("\n=== Mode: Learning ===\n");
+    printf("\nWeights BEFORE training (random):\n");
     display_architecture(&nn);
     
-    printf("\nRésultats AVANT l'entraînement:");
+    printf("\nResults BEFORE training:");
     test_truth_table(&nn);
     
-    // Entraînement
+    // Training
     int simulations;
-    printf("\nNombre de simulation d'entraînement (entre 1 et 100 000): ");
+    printf("\nNumber of training simulations (between 1 and 100,000): ");
     scanf("%d", &simulations);
     
     train(&nn, simulations, 1);
     
-    printf("\nPoids APRES l'entraînement:\n");
+    printf("\nWeights AFTER training:\n");
     display_architecture(&nn);
     
-    printf("\nRésultats APRES l'entraînement:");
+    printf("\nResults AFTER training:");
     test_truth_table(&nn);
     
     
