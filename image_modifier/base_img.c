@@ -20,19 +20,22 @@ SDL_Surface *load_img(const char *filename)
     SDL_Surface* img = IMG_Load(filename);
     if (!img)
         errx(EXIT_FAILURE, "%s\n", SDL_GetError());
-    SDL_Surface *formatted = SDL_ConvertSurfaceFormat(img, SDL_PIXELFORMAT_RGB24, 0);
+    SDL_Surface *formatted =
+        SDL_ConvertSurfaceFormat(img, SDL_PIXELFORMAT_RGB24, 0);
     SDL_FreeSurface(img);
     if (!formatted)
-        errx(EXIT_FAILURE, "Unable to optimize image %s, %s\n", filename, SDL_GetError());
+        errx(EXIT_FAILURE, "Unable to optimize image %s, %s\n",
+            filename, SDL_GetError());
     return formatted;
 }
 
 void save_img_name_bmp(SDL_Surface *img, const char *filename)
 {
     if (!img || !filename)
-        errx(EXIT_FAILURE, "save_img_name_bmp surface=%p, filename==%p", img, filename);
+        errx(EXIT_FAILURE, "save_img_name_bmp %p in %p", img, filename);
     if (SDL_SaveBMP(img, filename) != 0)
-        errx(EXIT_FAILURE, "SDL_SaveBMP to %s : %s\n", filename, SDL_GetError());
+        errx(EXIT_FAILURE, "SDL_SaveBMP to %s : %s\n",
+            filename, SDL_GetError());
 }
 
 void create_parent_dirs(const char *path)
@@ -54,7 +57,7 @@ void create_parent_dirs(const char *path)
 void save_img_bmp(SDL_Surface *img, const char *filepath)
 {
     if (!img || !filepath)
-        errx(EXIT_FAILURE, "save_img_bmp surface=%p, filepath==%p", img, filepath);
+        errx(EXIT_FAILURE, "save_img_bmp %p in %p", img, filepath);
     create_parent_dirs(filepath);
     save_img_name_bmp(img, filepath);
 }
