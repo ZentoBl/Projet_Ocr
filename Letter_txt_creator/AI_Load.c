@@ -153,7 +153,7 @@ void forward_pass(const double *input) {
 
 char recognize(SDL_Surface* surface) 
 {
-    char result;
+    char result = ' ';
     
     double *user_input = convert_surface_to_matrix(surface);
     
@@ -256,17 +256,17 @@ int* split_pos(SDL_Surface *img, size_t nb_cut) {
     }
     
     int max_depth = 0;
-    for (size_t x = 0; x < img->w; x++)
+    for (int x = 0; x < img->w; x++)
         if (hist[x] > max_depth)
             max_depth = hist[x];
     
     int valley_thresh = max_depth;
-    for (size_t x = 2; x < img->w-2; x++)
+    for (int x = 2; x < img->w-2; x++)
         if (hist[x] < valley_thresh)
             valley_thresh = hist[x];
     
-    int nb_at_min = 0;
-    for (size_t x = 2; x < img->w-2; x++)
+    size_t nb_at_min = 0;
+    for (int x = 2; x < img->w-2; x++)
         if (valley_thresh == hist[x])
             nb_at_min++;
     
